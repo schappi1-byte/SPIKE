@@ -1,0 +1,14 @@
+team_id,match_date,opponent,venue,is_conference,result,sets_won,sets_lost,set_scores,kills,attack_errors,attack_attempts,assists,service_aces,service_errors,serve_attempts,reception_errors,reception_attempts,digs,block_solos,block_assists,points
+unc-chapel-hill-wvb,2026-08-29,Davidson,away,false,win,3,0,25-22 25-17 25-22,40,12,98,38,6,6,73,6,59,46,2,12,54.0
+unc-chapel-hill-wvb,2026-08-30,UNCW,home,false,win,3,0,25-13 25-12 25-10,44,5,83,42,3,6,73,1,35,44,1,22,59.0
+unc-chapel-hill-wvb,2026-09-03,James Madison,home,false,win,3,1,21-25 25-21 25-18 25-19,60,19,122,56,3,7,95,6,74,48,2,16,73.0
+unc-chapel-hill-wvb,2026-09-04,Colorado St.,home,false,win,3,2,25-19 25-21 21-25 18-25 16-14,64,24,162,58,4,7,105,4,96,54,2,22,81.0
+unc-chapel-hill-wvb,2026-09-09,Kentucky,away,false,loss,0,3,11-25 19-25 18-25,27,13,92,23,1,9,50,4,69,36,0,12,34.0
+unc-chapel-hill-wvb,2026-09-13,Vanderbilt,home,false,loss,1,3,16-25 26-24 19-25 25-27,48,23,134,45,5,7,87,4,91,46,2,16,63.0
+unc-chapel-hill-wvb,2026-09-18,Nebraska,away,false,loss,1,3,14-25 25-20 21-25 10-25,36,23,106,36,5,9,71,13,86,29,0,20,51.0
+unc-chapel-hill-wvb,2026-09-19,FGCU,home,false,win,3,1,25-21 25-16 20-25 25-22,54,16,120,52,5,7,94,4,77,45,1,20,70.0
+unc-chapel-hill-wvb,2026-09-25,NC State,away,true,win,3,1,28-26 25-20 23-25 25-16,54,19,158,49,4,5,100,5,77,73,0,30,73.0
+unc-chapel-hill-wvb,2026-09-27,Wake Forest,away,true,win,3,2,25-21 23-25 26-24 30-32 15-9,69,21,170,65,4,8,119,3,100,70,1,26,87.0
+unc-chapel-hill-wvb,2026-10-02,Clemson,home,true,win,3,0,25-15 25-20 25-14,45,12,84,40,3,9,73,2,45,30,4,12,58.0
+unc-chapel-hill-wvb,2026-10-04,Georgia Tech,home,true,win,3,2,23-25 22-25 28-26 25-22 15-11,71,29,169,68,6,4,112,9,106,53,3,20,90.0
+unc-chapel-hill-wvb,2026-10-09,Virginia Tech,away,true,win,3,0,25-11 25-18 25-16,42,13,99,37,3,4,73,4,44,48,1,10,51.0

@@ -3,10 +3,11 @@ AI-powered volleyball coaching with lineup optimization, personalized training p
 
 | Page | What it does |
 | --- | --- |
-| `/` | Team roster with per-set stats |
-| `/players/[id]` | Stats, skill ratings, coach feedback, drill progress, and a Gemini training plan |
-| `/lineup` | 4–2 lineup built from skill ratings, all six rotations, and a button to send one to the live court |
+| `/` | Real UNC 2026 roster with per-set stats |
+| `/players/[id]` | Season stats, skill ratings derived from them, stats-based feedback, drill progress, and a Gemini training plan |
+| `/lineup` | 4–2 lineup built from skill ratings and hitting efficiency, all six rotations, and a button to send one to the live court |
 | `/live` | Court that updates on every device when the coach sends a rotation |
+| `/insights` | UNC's stats in wins vs losses, a published study on what wins matches, and the 13-match log |
 
 ## Layout
 
@@ -17,8 +18,8 @@ AI-powered volleyball coaching with lineup optimization, personalized training p
 | `backend/.env.local` | Every key. Not committed. [.env.example](.env.example) lists them. |
 | `backend/lib/` | Server-only code: Supabase clients, data queries, Gemini, coach passcode check |
 | `backend/supabase/` | Database schema migrations |
-| `backend/data/` | UNC Chapel Hill seed data. See [backend/data/README.md](backend/data/README.md). |
-| `backend/scripts/` | Load the seed data, link a phone number to a player |
+| `backend/data/` | Real UNC Chapel Hill 2026 data and research benchmarks, with sources. See [backend/data/README.md](backend/data/README.md). |
+| `backend/scripts/` | Build the CSVs from sources (`npm run data:build`), load them, link a phone number to a player |
 | `backend/messaging/` | iMessage service that texts players. See [backend/messaging/README.md](backend/messaging/README.md). |
 
 All keys stay on the server. The browser only talks to this app's own API routes, never to Supabase, Gemini, or Photon directly.

@@ -1,0 +1,59 @@
+match_id,competition_level,phase,match_outcome,sets_won,sets_lost,total_sets,functional_serve_effectiveness_pct,reception_effectiveness_pct,direct_attack_effectiveness_pct,blocking_points,unforced_errors
+M-001,national,Final,win,2,0,2,67.0,22.0,30.0,3,13
+M-002,national,Regular,win,2,0,2,73.0,20.0,61.0,3,10
+M-003,national,Regular,win,2,0,2,73.0,31.0,42.0,3,19
+M-004,national,Regular,win,2,0,2,63.0,27.0,41.0,0,18
+M-005,national,Regular,win,2,0,2,71.0,30.0,30.0,3,16
+M-006,national,Regular,win,2,1,3,72.0,27.0,52.0,7,15
+M-007,national,Regular,win,2,0,2,69.0,44.0,37.0,6,19
+M-008,national,Regular,loss,1,2,3,59.0,28.0,46.0,6,19
+M-009,national,Semifinal,win,2,0,2,59.0,45.0,50.0,5,10
+M-010,national,Final,win,2,0,2,65.0,29.0,43.0,6,10
+M-011,national,Regular,win,2,0,2,75.0,28.0,49.0,0,12
+M-012,national,Regular,win,2,0,2,74.0,17.0,24.0,5,14
+M-013,national,Regular,win,2,1,3,69.0,28.0,27.0,7,27
+M-014,national,Regular,loss,1,2,3,79.0,24.0,30.0,2,19
+M-015,national,Regular,win,2,1,3,82.0,13.0,27.0,3,18
+M-016,national,Regular,win,2,0,2,73.0,16.0,33.0,3,17
+M-017,national,Regular,loss,0,2,2,71.0,40.0,26.0,2,17
+M-018,national,Regular,loss,1,2,3,69.0,24.0,32.0,7,17
+M-019,national,Regular,loss,0,2,2,69.0,17.0,24.0,3,16
+M-020,national,Regular,win,2,1,3,70.0,32.0,46.0,5,15
+M-021,national,7th-8th place,win,2,0,2,78.0,14.0,41.0,1,9
+M-022,national,Regular,win,2,0,2,82.0,20.0,33.0,1,14
+M-023,national,Regular,win,2,0,2,75.0,36.0,55.0,0,13
+M-024,national,Regular,win,2,0,2,52.0,32.0,37.0,3,9
+M-025,national,Regular,loss,0,2,2,62.0,33.0,30.0,5,11
+M-026,national,Regular,win,2,0,2,83.0,14.0,44.0,1,12
+M-027,national,Regular,win,2,0,2,63.0,38.0,40.0,3,19
+M-028,national,Final,loss,1,2,3,67.0,34.0,29.0,6,24
+M-029,national,Regular,win,2,0,2,66.0,24.0,33.0,6,17
+M-030,national,Regular,win,2,0,2,65.0,23.0,40.0,3,17
+M-031,national,Regular,loss,0,2,2,47.0,33.0,30.0,1,15
+M-032,national,Regular,win,2,0,2,59.0,43.0,37.0,8,17
+M-033,national,Regular,win,2,1,3,72.0,30.0,41.0,8,20
+M-034,national,Regular,loss,1,2,3,59.0,48.0,35.0,4,25
+M-035,national,Semifinal,loss,0,2,2,50.0,27.0,33.0,3,21
+M-036,national,3rd-4th place,win,2,0,2,73.0,18.0,39.0,8,12
+M-037,national,Regular,loss,1,2,3,65.0,32.0,30.0,5,17
+M-038,national,Regular,win,2,0,2,66.0,14.0,32.0,3,21
+M-039,national,Regular,loss,0,2,2,68.0,22.0,32.0,0,14
+M-040,national,Regular,win,2,1,3,66.0,23.0,39.0,6,16
+M-041,national,Regular,win,2,0,2,70.0,46.0,33.0,5,18
+M-042,national,Regular,win,2,0,2,53.0,32.0,34.0,8,16
+M-043,national,Regular,win,2,0,2,62.0,27.0,44.0,2,13
+M-044,national,Regular,win,2,0,2,78.0,27.0,34.0,5,10
+M-045,national,Semifinal,win,3,0,3,72.0,29.0,35.0,7,18
+M-046,national,Final,win,3,0,3,58.0,18.0,44.0,2,20
+M-047,national,Regular,win,2,0,2,53.0,37.0,43.0,3,17
+M-048,national,Regular,loss,0,2,2,84.0,29.0,32.0,2,18
+M-049,south_american,Regular,loss,0,3,3,65.0,16.0,20.0,10,21
+M-050,south_american,Regular,win,3,2,5,70.0,15.0,41.0,10,29
+M-051,south_american,Regular,win,3,0,3,78.0,23.0,43.0,1,13
+M-052,south_american,Regular,loss,0,3,3,61.0,18.0,28.0,11,13
+M-053,south_american,Regular,loss,0,3,3,65.0,14.0,32.0,2,17
+M-054,south_american,Regular,win,3,0,3,79.0,24.0,43.0,5,22
+M-055,south_american,5th-8th semifinal,win,3,0,3,74.0,33.0,38.0,7,21
+M-056,south_american,5th-6th place,loss,0,3,3,55.0,21.0,21.0,4,22
+M-057,national,Semifinal,loss,1,2,3,60.0,31.0,39.0,6,18
+M-058,national,3rd-4th place,win,2,0,2,74.0,19.0,36.0,1,16

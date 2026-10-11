@@ -19,9 +19,12 @@ async function readCsv(path) {
 }
 
 const int = (value) => Number.parseInt(value, 10);
+const intOrNull = (value) => (value === "" ? null : int(value));
 const bool = (value) => value === "true";
 const list = (value) => value.split("|").filter(Boolean);
 const orNull = (value) => (value === "" ? null : value);
+const numbers = (r, except, mapValue = int) =>
+  Object.fromEntries(Object.entries(r).map(([k, v]) => [k, except.includes(k) ? v : mapValue(v)]));
 
 // Parents before children so foreign keys resolve.
 const tables = [
@@ -35,19 +38,29 @@ const tables = [
     table: "players",
     file: "unc_chapel_hill/players.csv",
     conflict: "player_id",
-    map: (r) => ({ ...r, eligible_positions: list(r.eligible_positions), height_cm: int(r.height_cm), is_setter: bool(r.is_setter) }),
+    map: (r) => ({
+      ...r,
+      eligible_positions: list(r.eligible_positions),
+      height_cm: int(r.height_cm),
+      is_setter: bool(r.is_setter),
+      jersey_number: orNull(r.jersey_number),
+      hometown: orNull(r.hometown),
+      previous_school: orNull(r.previous_school),
+    }),
+    // Players no longer in the CSV are deleted; their stats, plans, and contacts cascade.
+    prune: { column: "team_id", key: "player_id" },
   },
   {
     table: "player_stats",
     file: "unc_chapel_hill/player_stats.csv",
     conflict: "player_id",
-    map: (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === "player_id" ? v : int(v)])),
+    map: (r) => ({ ...numbers(r, ["player_id", "points"]), points: Number(r.points) }),
   },
   {
     table: "skill_ratings",
     file: "unc_chapel_hill/skill_ratings.csv",
     conflict: "player_id",
-    map: (r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === "player_id" ? v : int(v)])),
+    map: (r) => numbers(r, ["player_id"], intOrNull),
   },
   {
     table: "coach_feedback",
@@ -85,14 +98,55 @@ const tables = [
     conflict: "session_id,court_position",
     map: (r) => ({ ...r, rotation_number: int(r.rotation_number), court_position: int(r.court_position) }),
   },
+  {
+    table: "team_matches",
+    file: "unc_chapel_hill/team_matches.csv",
+    conflict: "team_id,match_date,opponent",
+    map: (r) => ({
+      ...numbers(r, ["team_id", "match_date", "opponent", "venue", "is_conference", "result", "set_scores", "points"]),
+      is_conference: bool(r.is_conference),
+      points: Number(r.points),
+    }),
+  },
+  {
+    table: "research_studies",
+    file: "research/research_studies.csv",
+    conflict: "study_id",
+    map: (r) => ({ ...r, year: int(r.year) }),
+  },
+  {
+    table: "research_matches",
+    file: "research/research_matches.csv",
+    conflict: "study_id,match_id",
+    map: (r) => ({
+      ...numbers(r, ["study_id", "match_id", "competition_level", "phase", "match_outcome"], Number),
+    }),
+  },
 ];
 
-for (const { table, file, conflict, map } of tables) {
+function fail(table, error) {
+  console.error(`${table}: ${error.message}`);
+  process.exit(1);
+}
+
+for (const { table, file, conflict, map, prune } of tables) {
   const rows = (await readCsv(file)).map(map);
   const { error } = await supabase.from(table).upsert(rows, { onConflict: conflict });
-  if (error) {
-    console.error(`${table}: ${error.message}`);
-    process.exit(1);
+  if (error) fail(table, error);
+
+  let removed = 0;
+  if (prune) {
+    for (const scope of new Set(rows.map((r) => r[prune.column]))) {
+      const keep = rows.filter((r) => r[prune.column] === scope).map((r) => r[prune.key]);
+      const { data, error: pruneError } = await supabase
+        .from(table)
+        .delete()
+        .eq(prune.column, scope)
+        .not(prune.key, "in", `(${keep.join(",")})`)
+        .select(prune.key);
+      if (pruneError) fail(table, pruneError);
+      removed += data.length;
+    }
   }
-  console.log(`${table}: ${rows.length} rows`);
+  console.log(`${table}: ${rows.length} rows${removed ? `, removed ${removed} no longer in the CSV` : ""}`);
 }

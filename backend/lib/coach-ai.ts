@@ -1,9 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getExercises, getProgress, getRosterPlayer } from "./data";
-import type { Exercise, RosterPlayer, Skill, TrainingPlan, TrainingProgress } from "../../lib/types";
+import { getExercises, getProgress, getResearch, getRosterPlayer, getTeam, getTeamMatches } from "./data";
+import type { Exercise, RosterPlayer, Skill, Team, TeamMatch, TrainingPlan, TrainingProgress } from "../../lib/types";
 import { SKILLS } from "../../lib/types";
-import { derivedStats, formatHitting, POSITION_NAMES, weakestSkills } from "../../lib/volleyball";
+import { matchLine, researchSummary, type ResearchSummary } from "../../lib/insights";
+import { derivedStats, formatHitting, formatPercent, POSITION_NAMES, PRIMARY_SKILL, weakestSkills } from "../../lib/volleyball";
 
 const MASTERED_SCORE = 85;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -13,14 +14,23 @@ export interface PlayerContext {
   progress: (TrainingProgress & { exercise: Exercise | undefined })[];
   focusSkill: Skill;
   candidates: Exercise[];
+  team: Team | null;
+  matches: TeamMatch[];
+  research: ResearchSummary | null;
 }
 
 export async function loadPlayerContext(db: SupabaseClient, playerId: string): Promise<PlayerContext | null> {
-  const [player, progress, exercises] = await Promise.all([getRosterPlayer(db, playerId), getProgress(db, playerId), getExercises(db)]);
+  const [player, progress, exercises, research] = await Promise.all([
+    getRosterPlayer(db, playerId),
+    getProgress(db, playerId),
+    getExercises(db),
+    getResearch(db),
+  ]);
   if (!player?.skill_ratings) return null;
+  const [team, matches] = await Promise.all([getTeam(db, player.team_id), getTeamMatches(db, player.team_id)]);
 
   const byId = new Map(exercises.map((e) => [e.exercise_id, e]));
-  const focusSkill = weakestSkills(player, player.skill_ratings)[0] ?? "passing";
+  const focusSkill = weakestSkills(player, player.skill_ratings)[0] ?? PRIMARY_SKILL[player.position];
   const mastered = new Set(progress.filter((p) => p.completed && p.progress_score >= MASTERED_SCORE).map((p) => p.exercise_id));
   const forSkill = exercises.filter((e) => e.target_skill === focusSkill);
   const unmastered = forSkill.filter((e) => !mastered.has(e.exercise_id));
@@ -33,6 +43,34 @@ export async function loadPlayerContext(db: SupabaseClient, playerId: string): P
     progress: progress.map((p) => ({ ...p, exercise: byId.get(p.exercise_id) })),
     focusSkill,
     candidates,
+    team,
+    matches,
+    research: research.matches.length ? researchSummary(research.matches) : null,
+  };
+}
+
+function teamContext(ctx: PlayerContext) {
+  if (!ctx.team) return null;
+  const wins = matchLine(ctx.matches.filter((m) => m.result === "win"));
+  const losses = matchLine(ctx.matches.filter((m) => m.result === "loss"));
+  return {
+    school: ctx.team.school,
+    record: `${ctx.team.wins}-${ctx.team.losses}`,
+    hitting_percentage_in_wins: formatHitting(wins.hittingPercentage),
+    hitting_percentage_in_losses: formatHitting(losses.hittingPercentage),
+    serve_receive_in_wins: formatPercent(wins.receptionPercentage),
+    serve_receive_in_losses: formatPercent(losses.receptionPercentage),
+  };
+}
+
+function researchContext(ctx: PlayerContext) {
+  const r = ctx.research;
+  if (!r) return null;
+  return {
+    source: "Sanhueza-Tapia et al. (2026), 58 women's U16 matches",
+    finding: "Attack effectiveness was the only indicator that separated wins from losses.",
+    win_rate_with_attack_effectiveness_at_or_above_median: formatPercent(r.winRateAboveMedian, 0),
+    win_rate_below_median: formatPercent(r.winRateBelowMedian, 0),
   };
 }
 
@@ -44,17 +82,26 @@ function contextForModel(ctx: PlayerContext) {
     player: { name: player.name, position: POSITION_NAMES[player.position], class_year: player.class_year },
     stats: stats && derived
       ? {
+          matches_played: stats.matches_played,
           sets_played: stats.sets_played,
+          kills: stats.kills,
+          attack_attempts: stats.attack_attempts,
           hitting_percentage: formatHitting(derived.hittingPercentage),
           kills_per_set: derived.killsPerSet.toFixed(2),
-          aces_per_set: derived.acesPerSet.toFixed(2),
+          assists_per_set: stats.sets_played ? (stats.assists / stats.sets_played).toFixed(2) : "0.00",
+          aces: stats.service_aces,
+          service_errors: stats.service_errors,
+          serves_in: formatPercent(derived.serveInPercentage),
           digs_per_set: derived.digsPerSet.toFixed(2),
           blocks_per_set: derived.blocksPerSet.toFixed(2),
-          service_errors: stats.service_errors,
           reception_errors: stats.reception_errors,
+          serve_receive_attempts: stats.reception_attempts,
+          serve_receive: formatPercent(derived.receptionPercentage),
         }
       : null,
-    ratings: Object.fromEntries(SKILLS.map((s) => [s, player.skill_ratings?.[s]])),
+    team: teamContext(ctx),
+    research: researchContext(ctx),
+    ratings: Object.fromEntries(SKILLS.map((s) => [s, player.skill_ratings?.[s] ?? "not enough data"])),
     coach_feedback: player.coach_feedback,
     focus_skill: ctx.focusSkill,
     training_history: ctx.progress.map((p) => ({
@@ -109,12 +156,14 @@ function gemini(): { ai: GoogleGenAI; model: string } | null {
 function fallbackPlan(ctx: PlayerContext): TrainingPlan {
   const order = { Beginner: 0, Intermediate: 1, Advanced: 2 };
   const drills = [...ctx.candidates].sort((a, b) => order[a.difficulty] - order[b.difficulty]);
-  const feedback = ctx.player.coach_feedback?.weaknesses;
+  const rated = ctx.player.skill_ratings?.[ctx.focusSkill] != null;
+  const feedback = rated ? ctx.player.coach_feedback?.weaknesses : undefined;
+  const why = rated
+    ? `${ctx.focusSkill} is the lowest rating for this role`
+    : `There isn't enough match data to rate this player yet, so the plan builds ${ctx.focusSkill}, the core skill for a ${POSITION_NAMES[ctx.player.position].toLowerCase()}`;
   return {
     focus_skill: ctx.focusSkill,
-    reason: feedback
-      ? `${ctx.focusSkill} is the lowest rating for this role, and the coach noted: ${feedback}.`
-      : `${ctx.focusSkill} is the lowest rating for this role.`,
+    reason: feedback ? `${why}. Season stats: ${feedback}.` : `${why}.`,
     sessions: DAYS.slice(0, Math.max(3, Math.min(5, drills.length))).flatMap((day, i) => {
       const drill = drills[i % drills.length];
       return drill
@@ -137,6 +186,7 @@ export async function generateTrainingPlan(ctx: PlayerContext): Promise<{ plan: 
         systemInstruction:
           "You are a college volleyball coach writing a one-week individual training plan. " +
           "Use only the player data provided. Every exercise_id must come from candidate_exercises. " +
+          "Ground the reason in the player's real stats, and use the team and research context when they show why the skill matters. " +
           "Start with an easier drill if the player scored below 75 on a drill for this skill. " +
           "Keep each coaching_cue to one short, specific sentence the player can act on.",
         responseMimeType: "application/json",

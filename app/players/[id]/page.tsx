@@ -4,7 +4,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { getExercises, getLatestPlan, getProgress, getRosterPlayer } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { SKILLS } from "@/lib/types";
-import { derivedStats, formatHitting, POSITION_NAMES } from "@/lib/volleyball";
+import { derivedStats, formatHitting, formatPercent, POSITION_NAMES } from "@/lib/volleyball";
 import { PlanGenerator } from "./PlanGenerator";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +31,14 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       <p>
         <Link href="/">← Roster</Link>
       </p>
-      <h1>{player.name}</h1>
+      <h1>
+        {player.jersey_number !== null ? `#${player.jersey_number} ` : ""}
+        {player.name}
+      </h1>
       <p className="muted">
         {POSITION_NAMES[player.position]} · {player.class_year} · {player.height_cm} cm · can play {player.eligible_positions.join(", ")}
+        {player.hometown ? ` · ${player.hometown}` : ""}
+        {player.previous_school ? ` (${player.previous_school})` : ""}
       </p>
 
       {stats && d ? (
@@ -45,9 +50,15 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             <Stat label="Aces / set" value={d.acesPerSet.toFixed(2)} />
             <Stat label="Digs / set" value={d.digsPerSet.toFixed(2)} />
             <Stat label="Blocks / set" value={d.blocksPerSet.toFixed(2)} />
+            <Stat label="Serve receive %" value={formatPercent(d.receptionPercentage)} />
+            <Stat label="Serves in %" value={formatPercent(d.serveInPercentage)} />
+            <Stat label="Kills" value={`${stats.kills} on ${stats.attack_attempts}`} />
+            <Stat label="Aces / errors" value={`${stats.service_aces} / ${stats.service_errors}`} />
             <Stat label="Assists" value={String(stats.assists)} />
-            <Stat label="Matches / sets" value={`${stats.matches_played} / ${stats.sets_played}`} />
+            <Stat label="Points" value={String(stats.points)} />
+            <Stat label="Matches (started) / sets" value={`${stats.matches_played} (${stats.matches_started}) / ${stats.sets_played}`} />
           </div>
+          <p className="muted">Source: goheels.com 2026 season stats.</p>
         </>
       ) : null}
 
@@ -56,18 +67,21 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <h2 style={{ marginTop: 0 }}>Skill ratings</h2>
           {player.skill_ratings
             ? SKILLS.map((skill) => {
-                const value = player.skill_ratings?.[skill] ?? 0;
+                const value = player.skill_ratings?.[skill] ?? null;
                 return (
                   <div key={skill} className="rating-bar">
                     <span style={{ textTransform: "capitalize" }}>{skill}</span>
                     <div className="track">
-                      <div className="fill" style={{ width: `${value * 10}%` }} />
+                      <div className="fill" style={{ width: `${(value ?? 0) * 10}%` }} />
                     </div>
-                    <span>{value}</span>
+                    <span title={value === null ? "Not enough attempts to rate" : undefined}>{value ?? "—"}</span>
                   </div>
                 );
               })
             : <p className="muted">No ratings yet.</p>}
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Calculated from season stats on a 1–10 scale. — means too few attempts to rate.
+          </p>
         </div>
 
         <div className="panel">
@@ -92,6 +106,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <h2>Training progress</h2>
+      <p className="muted">Sample drill assignments for the demo, aimed at this player&apos;s lowest-rated skill.</p>
       <div className="panel" style={{ padding: 0 }}>
         <table>
           <thead>

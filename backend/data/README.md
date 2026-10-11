@@ -1,136 +1,56 @@
 # SPIKE data
 
-UNC Chapel Hill women's volleyball for the 2026 season.
+UNC Chapel Hill women's volleyball, 2026 season, plus one published research dataset.
 
-The 15 players are fictional. Their counting stats add up to the team totals published by [UNC Athletics](https://goheels.com/sports/womens-volleyball/stats/2026): 13 matches, 50 sets, a 10–3 record, 654 kills, 229 attack errors, 1,597 attack attempts, 609 assists, 52 aces, 88 service errors, 65 reception errors, 622 digs, 19 solo blocks, and 238 block assists (138.0 total blocks).
-
-There is no separate AI dataset. A training plan can be built from player stats, skill ratings, coach feedback, and completed exercises.
-
-Video URLs are optional and left blank. Pose tracking, injury history, and wearable data are not included.
-
-## Files
-
-| File | What it holds |
-| --- | --- |
-| `unc_chapel_hill/team.csv` | One team |
-| `unc_chapel_hill/players.csv` | Roster, position, height, class year, setter flag |
-| `unc_chapel_hill/player_stats.csv` | Counting stats for the season |
-| `unc_chapel_hill/skill_ratings.csv` | Six ratings, 1–10, derived from the counting stats |
-| `unc_chapel_hill/coach_feedback.csv` | Strengths, weaknesses, comments, and goals |
-| `exercises.csv` | Shared drill library |
-| `unc_chapel_hill/training_progress.csv` | Assigned drills, completion, and a progress score |
-| `unc_chapel_hill/rotations.csv` | All six rotations of a 4–2 lineup |
-| `unc_chapel_hill/live_rotation.csv` | One current lineup for a live session |
-
-Players belong to a team through `team_id`. Drills belong to a player through `player_id` and `exercise_id`.
-
-## team.csv
-
-`team_id`, `team_name`, `school`, `gender`, `season`, `matches`, `sets`, `wins`, `losses`.
-
-`sets` is how many sets the team played. A player's `sets_played` can be lower, and the same set counts for more than one player.
-
-## players.csv
-
-`player_id`, `team_id`, `name`, `position`, `eligible_positions`, `height_cm`, `class_year`, `is_setter`.
-
-`position` is the primary role: `OH` outside hitter, `OPP` opposite, `MB` middle blocker, `S` setter, `L` libero, `DS` defensive specialist.
-
-`eligible_positions` lists every role that player can fill, separated by `|`. `is_setter` is `true` only for players who can run the offense. `class_year` is the age field for this roster.
-
-## player_stats.csv
-
-`player_id`, `matches_played`, `sets_played`, `kills`, `attack_attempts`, `attack_errors`, `assists`, `service_aces`, `service_errors`, `digs`, `block_solos`, `block_assists`, `reception_errors`.
-
-`reception_errors` is kept because the passing rating uses it. Total blocks are not stored.
-
-How the counting stats are spread:
-
-- Outside hitters and opposites take most of the attack attempts. Their hitting percentage is between .200 and .320.
-- Middle blockers have the most blocks and the highest hitting percentage, between .280 and .380.
-- The primary setter (`unc-w-10`) has 548 of 609 assists, about 90 percent.
-- Liberos and defensive specialists have the most digs and no attack attempts.
-
-## skill_ratings.csv
-
-`player_id`, `serving`, `passing`, `setting`, `hitting`, `blocking`, `defense`.
-
-Each value is an integer from 1 to 10. It is the formula below, rounded to the nearest integer with halves rounded up, then clamped to that range. If `sets_played` is 0, every rating is 1. If `attack_attempts` is 0, `hitting` is 1.
-
-- `serving` = `4 + (service_aces / sets_played) * 18 - (service_errors / sets_played) * 5`
-- `passing` = `4 + min(digs / sets_played, 5) * 1.3 - (reception_errors / sets_played) * 4`
-- `setting` = `2 + ((assists / sets_played) / 11) * 8`
-- `hitting` = `2 + hitting_percentage * 16 + (kills / sets_played) * 1.1`
-- `blocking` = `2 + (total_blocks / sets_played) * 8`
-- `defense` = `1.5 + (digs / sets_played) * 2.2`
-
-## coach_feedback.csv
-
-`player_id`, `strengths`, `weaknesses`, `coach_comments`, `improvement_goals`.
-
-One row per player. The comments match that player's ratings. Maya Ellison (`unc-w-01`) is the outside whose goal is serve receive. Quinn Adler (`unc-w-10`) is the setter whose goal is digging after the set.
-
-## exercises.csv
-
-`exercise_id`, `name`, `target_skill`, `difficulty`, `instructions`, `duration_minutes`, `reps`, `equipment`, `video_url`.
-
-`target_skill` is one of `serving`, `passing`, `setting`, `hitting`, `blocking`, or `defense`. `difficulty` is `Beginner`, `Intermediate`, or `Advanced`. `video_url` is empty.
-
-## training_progress.csv
-
-`player_id`, `exercise_id`, `assigned_date`, `completed`, `completion_date`, `progress_score`.
-
-`completed` is `true` or `false`. `completion_date` is empty when the drill is not finished. `progress_score` is 0–100. Each player has at least two assigned drills, some finished and some still open.
-
-## rotations.csv
-
-A 4–2 lineup for `unc-chapel-hill-wvb`. Six rotations, six court positions each.
-
-`team_id`, `rotation_number`, `court_position`, `player_id`, `player_position`, `eligible_positions`, `setter_player_id`, `rotation_order`, `on_court_player_id`.
-
-Court positions, from the team's side of the net:
-
-| Position | Where |
-| --- | --- |
-| 1 | Right back, the server |
-| 2 | Right front |
-| 3 | Middle front |
-| 4 | Left front |
-| 5 | Left back |
-| 6 | Middle back |
-
-The two setters, Quinn Adler (`unc-w-10`) and Naomi Park (`unc-w-11`), stay opposite each other. `setter_player_id` is the setter in the front row (positions 2, 3, or 4) for that rotation. `rotation_order` is that player's court position in rotation 1 and does not change.
-
-After a sideout everyone moves: 2 goes to 1, 1 to 6, 6 to 5, 5 to 4, 4 to 3, and 3 to 2. Rotation 6 leads back to rotation 1.
-
-`player_id` is the player in the rotation. `on_court_player_id` is who is actually standing there. The libero, Tess Morgan (`unc-w-12`), replaces the back-row middle blocker.
-
-Rotation 1:
-
-| Court position | In the rotation | On the court |
+| Kind | Files | Source |
 | --- | --- | --- |
-| 1 | Maya Ellison, OH | Maya Ellison |
-| 2 | Quinn Adler, S, setting | Quinn Adler |
-| 3 | Amina Diallo, MB | Amina Diallo |
-| 4 | Jordan Hale, OPP | Jordan Hale |
-| 5 | Naomi Park, S | Naomi Park |
-| 6 | Brooke Keller, MB | Tess Morgan, L |
+| Real | `team.csv`, `players.csv`, `player_stats.csv`, `team_matches.csv` | [goheels.com roster](https://goheels.com/sports/womens-volleyball/roster/2026) and [season stats](https://goheels.com/sports/womens-volleyball/stats/2026), retrieved 2026-10-11 |
+| Real, published | `research/research_studies.csv`, `research/research_matches.csv` | Sanhueza-Tapia et al. (2026), [doi:10.5281/zenodo.21166667](https://doi.org/10.5281/zenodo.21166667), CC BY 4.0 |
+| Derived from the real stats | `skill_ratings.csv`, `coach_feedback.csv` | Formulas below |
+| Generated by the optimizer | `rotations.csv`, `live_rotation.csv` | `optimizeFourTwo()` in `lib/volleyball.ts` |
+| Sample, for the demo | `training_progress.csv` | No public source exists |
+| SPIKE drill library | `exercises.csv` | Written for SPIKE |
 
-## live_rotation.csv
+## Rebuilding
 
-One synced snapshot of rotation 1, with the libero already on the court.
+```bash
+npm run data:build   # sources/ and research/ -> CSVs, then rotations from the optimizer
+npm run db:seed      # upsert into Supabase; players no longer in players.csv are deleted
+```
 
-`session_id`, `team_id`, `rotation_number`, `player_id`, `court_position`, `updated_at`, `update_status`.
+`sources/` holds the raw extracts from goheels.com. `research/u16_womens_match_level.csv` is the study's dataset, unchanged, with its license in `research/LICENSE-CC-BY-4.0.txt`.
 
-`player_id` here is the player on the court. `update_status` is `synced`. The timestamp is `2026-10-10T19:12:00-04:00`.
+## Real UNC data
 
-## Derived metrics
+- **players.csv**: 18 players with jersey number, position, height, class year, hometown, and previous school. Roster positions map to SPIKE's as `OH/OPP` → `OH` (also eligible at `OPP`), `RS` → `OPP`. Of the two `L/DS` players, the one with more serve-receive attempts (Julia Bohlinger) is the libero and the other (Carly Markham) is a defensive specialist.
+- **player_stats.csv**: full-season stats per player, including serve attempts, reception attempts, block errors, and points. Every column adds up to the team total on goheels.com. The site also credits 9 reception errors to "Team" rather than a player; those are left out.
+- **team_matches.csv**: all 13 matches with date, opponent, venue, conference flag, result, set scores, and team box-score totals.
 
-These are not stored. Compute them in the app.
+The downloaded `Cumulative Offensive Statistics` CSV listed Zoe Behrendt with 33 service errors. The official stats page has 3, which is what makes the players add up to the team's 88, so the official number is used.
 
-- Hitting percentage = `(kills - attack_errors) / attack_attempts`
-- Kills per set = `kills / sets_played`
-- Aces per set = `service_aces / sets_played`
-- Digs per set = `digs / sets_played`
-- Blocks per set = `total_blocks / sets_played`
-- Total blocks = `block_solos + 0.5 * block_assists`
+## Derived skill ratings
+
+Ratings are 1–10. A rating is blank when the player has too few attempts. The app treats blank as unknown, not as weak. Small samples are pulled toward a prior so a 3-for-3 sub doesn't outrank a starter.
+
+| Skill | Needs | Measure | Scale |
+| --- | --- | --- | --- |
+| Hitting | 30 attack attempts | Hitting %, shrunk toward .200 over 40 attempts | .100 → 3, .350 → 10 |
+| Serving | 30 serves | (aces − errors) / serves, shrunk toward the team rate over 40 serves | −.15 → 2, +.05 → 10 |
+| Passing | 30 serve receptions | 1 − reception errors / receptions, shrunk toward the team rate over 40 | 85% → 2, 98% → 10 |
+| Setting | 10 sets played | Assists per set | 0 → 1, 6.0 → 9 |
+| Blocking | 10 sets played | (solos + ½ assists) per set | 0 → 1, role bar → 10: MB 1.2, OH/OPP 0.7, others 0.5 |
+| Defense | 10 sets played | Digs per set | 0 → 1, role bar → 10: L/DS 3.5, S 3.0, OH/OPP 2.5, MB 1.5 |
+
+## Derived coach feedback
+
+Strengths are the player's two highest-rated skills that matter for their role, with the stat behind each. The weakness is the lowest-rated one, and the goal is a concrete number to hit. Players with fewer than two rated skills get a "limited court time" note. Every row says it was generated from stats. Replace these with the coaching staff's notes.
+
+## Research data
+
+One Chilean women's under-16 club team over 58 matches: 50 national tournament matches and 8 South American Club Championship matches. The Insights page compares won and lost national matches. Attack effectiveness was the only indicator that separated them; the team won 92% of matches with attack effectiveness at or above its median and 52% below it. The lineup optimizer gives hitters extra weight for hitting efficiency because of this.
+
+It's youth club data, so treat it as a direction rather than a college benchmark.
+
+## Not included
+
+Pose tracking, video, injury history, and wearable data. The ASPset-510 pose dataset was reviewed and left out because it has no volleyball stats.

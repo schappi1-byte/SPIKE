@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "db:link": "supabase link --workdir backend --project-ref qjtolrswazbmcureevta",
     "db:push": "supabase db push --workdir backend",
+    "data:build": "python3 backend/scripts/build-data.py && node backend/scripts/build-rotations.mts",
     "db:seed": "node --env-file-if-exists=backend/.env.local backend/scripts/load-data.mjs",
     "contact:add": "node --env-file-if-exists=backend/.env.local backend/scripts/add-contact.mjs",
     "messaging": "npm --prefix backend/messaging run start"

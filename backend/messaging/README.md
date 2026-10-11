@@ -31,7 +31,7 @@ Only phone numbers saved in `player_contacts` with texts turned on get messages.
 3. Link a phone to a player, from the repo root:
 
    ```sh
-   npm run contact:add -- unc-w-01 +15551234567
+   npm run contact:add -- unc-safi-hampton +15551234567
    ```
 
 4. Start it from the repo root and leave it running:

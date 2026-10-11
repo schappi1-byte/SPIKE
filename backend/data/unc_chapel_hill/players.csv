@@ -1,16 +1,19 @@
-player_id,team_id,name,position,eligible_positions,height_cm,class_year,is_setter
-unc-w-01,unc-chapel-hill-wvb,Maya Ellison,OH,OH|OPP,185,Junior,false
-unc-w-02,unc-chapel-hill-wvb,Priya Nandakumar,OH,OH,183,Senior,false
-unc-w-03,unc-chapel-hill-wvb,Claire Donovan,OH,OH|DS,180,Sophomore,false
-unc-w-04,unc-chapel-hill-wvb,Hannah Cho,OH,OH,178,Freshman,false
-unc-w-05,unc-chapel-hill-wvb,Jordan Hale,OPP,OPP|OH,191,Senior,false
-unc-w-06,unc-chapel-hill-wvb,Sofia Reyes,OPP,OPP,188,Freshman,false
-unc-w-07,unc-chapel-hill-wvb,Amina Diallo,MB,MB,193,Junior,false
-unc-w-08,unc-chapel-hill-wvb,Brooke Keller,MB,MB,191,Senior,false
-unc-w-09,unc-chapel-hill-wvb,Elise Moreau,MB,MB,190,Sophomore,false
-unc-w-10,unc-chapel-hill-wvb,Quinn Adler,S,S,178,Junior,true
-unc-w-11,unc-chapel-hill-wvb,Naomi Park,S,S|DS,175,Sophomore,true
-unc-w-12,unc-chapel-hill-wvb,Tess Morgan,L,L|DS,170,Senior,false
-unc-w-13,unc-chapel-hill-wvb,Riley Chen,L,L,168,Sophomore,false
-unc-w-14,unc-chapel-hill-wvb,Camila Vargas,DS,DS|L,173,Junior,false
-unc-w-15,unc-chapel-hill-wvb,Grace Whitfield,DS,DS,170,Freshman,false
+player_id,team_id,name,jersey_number,position,eligible_positions,height_cm,class_year,is_setter,hometown,previous_school
+unc-mackenzie-boyer,unc-chapel-hill-wvb,Mackenzie Boyer,0,MB,MB,190,Senior,false,"Austin, Texas",Vandegrift
+unc-zoe-behrendt,unc-chapel-hill-wvb,Zoe Behrendt,1,S,S,183,Senior,true,"Whitefish Bay, Wis.",Whitefish Bay
+unc-lauren-schutter,unc-chapel-hill-wvb,Lauren Schutter,3,MB,MB,188,Graduate,false,"Alma, Kansas",Wabaunsee
+unc-erin-curtis,unc-chapel-hill-wvb,Erin Curtis,4,OH,OH,183,Junior,false,"Los Altos, Calif.",Saint Francis
+unc-meghan-clifford,unc-chapel-hill-wvb,Meghan Clifford,5,MB,MB,193,Junior,false,"Fairport, N.Y.",Fairport
+unc-julia-bohlinger,unc-chapel-hill-wvb,Julia Bohlinger,6,L,L|DS,180,Junior,false,"Windsor, Colo.",Windsor
+unc-sadie-swift,unc-chapel-hill-wvb,Sadie Swift,7,MB,MB,190,Graduate,false,"Austin, Texas",Stephen F. Austin
+unc-sienna-cozza,unc-chapel-hill-wvb,Sienna Cozza,8,S,S,175,Sophomore,true,"Pittsburgh, Pa.",North Catholic
+unc-bridget-malone,unc-chapel-hill-wvb,Bridget Malone,10,OH,OH,185,Sophomore,false,"Highlands Ranch, Colo.",Mountain Vista
+unc-emily-bobbitt,unc-chapel-hill-wvb,Emily Bobbitt,14,S,S,178,Junior,true,"Clayton, N.C.",Corinth Holders
+unc-carly-markham,unc-chapel-hill-wvb,Carly Markham,18,DS,DS|L,173,Freshman,false,"Apex, N.C.",Apex Friendship
+unc-lindley-miller,unc-chapel-hill-wvb,Lindley Miller,20,OH,OH|OPP,193,Freshman,false,"Cary, N.C.",Green Level
+unc-jackie-taylor,unc-chapel-hill-wvb,Jackie Taylor,21,MB,MB,185,Junior,false,"Miami, Fla.",Gulliver Prep
+unc-safi-hampton,unc-chapel-hill-wvb,Safi Hampton,22,OH,OH,185,Senior,false,"Jessup, Md.",Hammond
+unc-laynie-smith,unc-chapel-hill-wvb,Laynie Smith,23,OH,OH|OPP,190,Junior,false,"Durham, N.C.",Chapel Hill
+unc-addison-west,unc-chapel-hill-wvb,Addison West,24,OH,OH,188,Freshman,false,"Omaha, Neb.",Skutt Catholic
+unc-hailey-pearce,unc-chapel-hill-wvb,Hailey Pearce,33,OPP,OPP,190,Senior,false,"Charlotte, N.C.",Sun Valley
+unc-chelsea-thorpe,unc-chapel-hill-wvb,Chelsea Thorpe,77,OH,OH|OPP,190,Graduate,false,"Chicago, Ill.",Whitney M. Young

@@ -25,25 +25,36 @@ export interface Player {
   height_cm: number;
   class_year: string;
   is_setter: boolean;
+  jersey_number: string | null;
+  hometown: string | null;
+  previous_school: string | null;
 }
 
 export interface PlayerStats {
   player_id: string;
   matches_played: number;
+  matches_started: number;
   sets_played: number;
   kills: number;
   attack_attempts: number;
   attack_errors: number;
   assists: number;
+  set_errors: number;
   service_aces: number;
   service_errors: number;
+  serve_attempts: number;
   digs: number;
   block_solos: number;
   block_assists: number;
+  block_errors: number;
   reception_errors: number;
+  reception_attempts: number;
+  ball_handling_errors: number;
+  points: number;
 }
 
-export type SkillRatings = { player_id: string } & Record<Skill, number>;
+/** 1-10 per skill, or null when the player has too few attempts to rate it. */
+export type SkillRatings = { player_id: string } & Record<Skill, number | null>;
 
 export interface CoachFeedback {
   player_id: string;
@@ -88,6 +99,57 @@ export interface RosterPlayer extends Player {
   player_stats: PlayerStats | null;
   skill_ratings: SkillRatings | null;
   coach_feedback: CoachFeedback | null;
+}
+
+export interface TeamMatch {
+  team_id: string;
+  match_date: string;
+  opponent: string;
+  venue: "home" | "away" | "neutral";
+  is_conference: boolean;
+  result: "win" | "loss";
+  sets_won: number;
+  sets_lost: number;
+  set_scores: string;
+  kills: number;
+  attack_errors: number;
+  attack_attempts: number;
+  assists: number;
+  service_aces: number;
+  service_errors: number;
+  serve_attempts: number;
+  reception_errors: number;
+  reception_attempts: number;
+  digs: number;
+  block_solos: number;
+  block_assists: number;
+  points: number;
+}
+
+export interface ResearchStudy {
+  study_id: string;
+  title: string;
+  authors: string;
+  year: number;
+  doi: string;
+  license: string;
+  population: string;
+}
+
+export interface ResearchMatch {
+  study_id: string;
+  match_id: string;
+  competition_level: string;
+  phase: string;
+  match_outcome: "win" | "loss";
+  sets_won: number;
+  sets_lost: number;
+  total_sets: number;
+  functional_serve_effectiveness_pct: number;
+  reception_effectiveness_pct: number;
+  direct_attack_effectiveness_pct: number;
+  blocking_points: number;
+  unforced_errors: number;
 }
 
 export interface PlanSession {

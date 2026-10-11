@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SetupNotice } from "@/components/SetupNotice";
 import { getRoster, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
-import { derivedStats, formatHitting } from "@/lib/volleyball";
+import { derivedStats, formatHitting, formatPercent } from "@/lib/volleyball";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +28,7 @@ export default async function RosterPage() {
         <table>
           <thead>
             <tr>
+              <th className="num">#</th>
               <th>Player</th>
               <th>Pos</th>
               <th>Class</th>
@@ -38,6 +39,7 @@ export default async function RosterPage() {
               <th className="num">A/S</th>
               <th className="num">D/S</th>
               <th className="num">B/S</th>
+              <th className="num">Recv %</th>
             </tr>
           </thead>
           <tbody>
@@ -47,6 +49,7 @@ export default async function RosterPage() {
               const assistsPerSet = stats && stats.sets_played > 0 ? stats.assists / stats.sets_played : 0;
               return (
                 <tr key={p.player_id}>
+                  <td className="num">{p.jersey_number ?? "—"}</td>
                   <td>
                     <Link href={`/players/${p.player_id}`}>{p.name}</Link>
                   </td>
@@ -61,12 +64,14 @@ export default async function RosterPage() {
                   <td className="num">{assistsPerSet.toFixed(2)}</td>
                   <td className="num">{d ? d.digsPerSet.toFixed(2) : "—"}</td>
                   <td className="num">{d ? d.blocksPerSet.toFixed(2) : "—"}</td>
+                  <td className="num">{d ? formatPercent(d.receptionPercentage) : "—"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+      <p className="muted">Roster and stats: goheels.com, {team.season} season.</p>
     </>
   );
 }

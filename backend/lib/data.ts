@@ -1,5 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Exercise, LiveRotationRow, RosterPlayer, Team, TrainingPlan, TrainingProgress } from "../../lib/types";
+import type {
+  Exercise,
+  LiveRotationRow,
+  ResearchMatch,
+  ResearchStudy,
+  RosterPlayer,
+  Team,
+  TeamMatch,
+  TrainingPlan,
+  TrainingProgress,
+} from "../../lib/types";
 
 const ROSTER_SELECT = "*, player_stats(*), skill_ratings(*), coach_feedback(*)";
 
@@ -17,7 +27,21 @@ export async function getTeam(db: SupabaseClient, teamId: string): Promise<Team 
 }
 
 export async function getRoster(db: SupabaseClient, teamId: string): Promise<RosterPlayer[]> {
-  return unwrap<RosterPlayer[]>(await db.from("players").select(ROSTER_SELECT).eq("team_id", teamId).order("player_id"));
+  const roster = unwrap<RosterPlayer[]>(await db.from("players").select(ROSTER_SELECT).eq("team_id", teamId));
+  const jersey = (p: RosterPlayer) => Number(p.jersey_number ?? Number.POSITIVE_INFINITY);
+  return roster.sort((a, b) => jersey(a) - jersey(b) || a.name.localeCompare(b.name));
+}
+
+export async function getTeamMatches(db: SupabaseClient, teamId: string): Promise<TeamMatch[]> {
+  return unwrap<TeamMatch[]>(await db.from("team_matches").select("*").eq("team_id", teamId).order("match_date"));
+}
+
+export async function getResearch(db: SupabaseClient): Promise<{ studies: ResearchStudy[]; matches: ResearchMatch[] }> {
+  const [studies, matches] = await Promise.all([
+    db.from("research_studies").select("*").order("year", { ascending: false }),
+    db.from("research_matches").select("*").order("match_id"),
+  ]);
+  return { studies: unwrap<ResearchStudy[]>(studies), matches: unwrap<ResearchMatch[]>(matches) };
 }
 
 export async function getRosterPlayer(db: SupabaseClient, playerId: string): Promise<RosterPlayer | null> {

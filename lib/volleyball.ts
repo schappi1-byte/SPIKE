@@ -28,6 +28,10 @@ export interface DerivedStats {
   digsPerSet: number;
   blocksPerSet: number;
   totalBlocks: number;
+  /** Share of serves received without an error. */
+  receptionPercentage: number | null;
+  /** Share of serves that weren't errors. */
+  serveInPercentage: number | null;
 }
 
 export function derivedStats(stats: PlayerStats): DerivedStats {
@@ -40,7 +44,13 @@ export function derivedStats(stats: PlayerStats): DerivedStats {
     digsPerSet: perSet(stats.digs),
     blocksPerSet: perSet(totalBlocks),
     totalBlocks,
+    receptionPercentage: stats.reception_attempts > 0 ? 1 - stats.reception_errors / stats.reception_attempts : null,
+    serveInPercentage: stats.serve_attempts > 0 ? 1 - stats.service_errors / stats.serve_attempts : null,
   };
+}
+
+export function formatPercent(value: number | null, digits = 1): string {
+  return value === null ? "—" : `${(value * 100).toFixed(digits)}%`;
 }
 
 export function formatHitting(value: number | null): string {
@@ -49,20 +59,42 @@ export function formatHitting(value: number | null): string {
   return value >= 0 ? fixed.replace(/^0/, "") : fixed.replace(/^-0/, "-");
 }
 
-/** Lowest ratings first, ignoring skills the player's role doesn't use. */
+/** Main skill for each role; the training focus when no skill has enough data to rate. */
+export const PRIMARY_SKILL: Record<Position, Skill> = {
+  OH: "hitting",
+  OPP: "hitting",
+  MB: "blocking",
+  S: "setting",
+  L: "passing",
+  DS: "passing",
+};
+
+/**
+ * Lowest ratings first, ignoring skills the player's role doesn't use and skills without enough data.
+ * Middles are replaced by the libero in the back row, so passing and defense don't count for them.
+ * Keep in sync with IGNORED in backend/scripts/build-data.py.
+ */
 export function weakestSkills(player: Player, ratings: SkillRatings): Skill[] {
   const ignored: Record<Position, Skill[]> = {
     OH: ["setting"],
     OPP: ["setting"],
-    MB: ["setting"],
-    S: [],
+    MB: ["setting", "passing", "defense"],
+    S: ["hitting"],
     L: ["setting", "hitting", "blocking"],
     DS: ["setting", "hitting", "blocking"],
   };
   const skip = new Set(ignored[player.position]);
   return (["serving", "passing", "setting", "hitting", "blocking", "defense"] as const)
-    .filter((skill) => !skip.has(skill))
-    .sort((a, b) => ratings[a] - ratings[b]);
+    .filter((skill) => !skip.has(skill) && ratings[skill] !== null)
+    .sort((a, b) => (ratings[a] ?? 0) - (ratings[b] ?? 0));
+}
+
+/** Hitting percentage pulled toward .200 over 40 attempts, so a 3-for-3 sub doesn't outrank a starter. */
+export function attackEfficiency(stats: PlayerStats | null): number {
+  const priorAttempts = 40;
+  const prior = 0.2;
+  if (!stats) return prior;
+  return (stats.kills - stats.attack_errors + prior * priorAttempts) / (stats.attack_attempts + priorAttempts);
 }
 
 export type Lineup = Record<CourtPosition, string>;
@@ -89,17 +121,41 @@ export interface RotationPlan {
 
 type Rated = RosterPlayer & { skill_ratings: SkillRatings };
 
-const roleScore = {
-  setter: (r: SkillRatings) => r.setting * 3 + r.serving + r.defense,
-  middle: (r: SkillRatings) => r.blocking * 2 + r.hitting * 2 + r.serving,
-  pin: (r: SkillRatings) => r.hitting * 2 + r.passing + r.blocking + r.serving,
-  libero: (r: SkillRatings) => r.defense * 2 + r.passing * 2,
+/** Unknown skills count as below average so a player with no data isn't picked over a proven one. */
+const UNRATED = 3;
+const rating = (p: Rated, skill: Skill) => p.skill_ratings[skill] ?? UNRATED;
+
+/** Sets played / (sets played + 10): a 17-set sample counts for less than a 46-set season. */
+const reliability = (p: Rated) => {
+  const sets = p.player_stats?.sets_played ?? 0;
+  return sets / (sets + 10);
 };
 
-function pickBest(pool: Rated[], count: number, score: (r: SkillRatings) => number, taken: Set<string>): Rated[] {
+/**
+ * Attack efficiency gets its own term for hitters: in Sanhueza-Tapia et al. (2026) it was the only
+ * indicator that separated wins from losses (odds of winning x3.8 per standard deviation).
+ */
+const ATTACK_WEIGHT = 30;
+
+const roleScore = {
+  setter: (p: Rated) => (rating(p, "setting") * 3 + rating(p, "serving") + rating(p, "defense")) * reliability(p),
+  middle: (p: Rated) =>
+    (rating(p, "blocking") * 2 + rating(p, "hitting") * 2 + rating(p, "serving") + attackEfficiency(p.player_stats) * ATTACK_WEIGHT) *
+    reliability(p),
+  pin: (p: Rated) =>
+    (rating(p, "hitting") * 2 +
+      rating(p, "passing") +
+      rating(p, "blocking") +
+      rating(p, "serving") +
+      attackEfficiency(p.player_stats) * ATTACK_WEIGHT) *
+    reliability(p),
+  libero: (p: Rated) => (rating(p, "defense") * 2 + rating(p, "passing") * 2) * reliability(p),
+};
+
+function pickBest(pool: Rated[], count: number, score: (p: Rated) => number, taken: Set<string>): Rated[] {
   const picked = pool
     .filter((p) => !taken.has(p.player_id))
-    .sort((a, b) => score(b.skill_ratings) - score(a.skill_ratings))
+    .sort((a, b) => score(b) - score(a))
     .slice(0, count);
   for (const p of picked) taken.add(p.player_id);
   return picked;
@@ -139,10 +195,10 @@ export function optimizeFourTwo(roster: RosterPlayer[]): RotationPlan {
   };
 
   const score =
-    setters.reduce((sum, p) => sum + roleScore.setter(p.skill_ratings), 0) +
-    middles.reduce((sum, p) => sum + roleScore.middle(p.skill_ratings), 0) +
-    pins.reduce((sum, p) => sum + roleScore.pin(p.skill_ratings), 0) +
-    (libero ? roleScore.libero(libero.skill_ratings) : 0);
+    setters.reduce((sum, p) => sum + roleScore.setter(p), 0) +
+    middles.reduce((sum, p) => sum + roleScore.middle(p), 0) +
+    pins.reduce((sum, p) => sum + roleScore.pin(p), 0) +
+    (libero ? roleScore.libero(libero) : 0);
 
   return {
     start,
