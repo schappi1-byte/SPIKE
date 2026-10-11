@@ -1,47 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import { loadSavedAnalysis, requestAnalysis, skillDelta, type PlayerAnalysis, type Recommendation } from "./analysis";
-import { formatWhen, latestAssessment, SKILL_KEYS, SKILL_LABEL, type Athlete, type SkillKey } from "./model";
+import { requestAnalysis, skillDelta, type Recommendation, type SavedAnalysis } from "./analysis";
+import { formatWhen, latestAssessment, sameTime, SKILL_KEYS, SKILL_LABEL, type Athlete, type SkillKey } from "./model";
+import { useStore } from "./store";
 import { ratingOf } from "./ui";
 
-const STORAGE_KEY = "spike-player-analysis-v1";
-
-type Stored = {
-  athleteId: number;
-  sourceRecordedAt: string;
-  generatedAt: string;
-  analysis: PlayerAnalysis;
-};
-
 const STEPS = ["Sending the latest evaluation…", "Waiting for Gemini…"];
-
-function loadStored(athleteId: number): Stored | null {
-  return loadSavedAnalysis(athleteId);
-}
-
-function saveStored(item: Stored) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") as Record<string, Stored>;
-    saved[String(item.athleteId)] = item;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-  } catch {
-    // The analysis still displays for this visit if storage is unavailable.
-  }
-}
 
 export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onTraining: () => void }) {
   const latest = latestAssessment(athlete);
   const previous = athlete.assessments.length > 1 ? athlete.assessments[athlete.assessments.length - 2].skills : null;
   const ranked = [...SKILL_KEYS].sort((a, b) => latest.skills[b] - latest.skills[a] || SKILL_LABEL[a].localeCompare(SKILL_LABEL[b]));
-  const [stored, setStored] = useState<Stored | null>(() => loadStored(athlete.id));
+  const { analyses, setAnalysis, refresh } = useStore();
+  const stored: SavedAnalysis | null = analyses[athlete.id] ?? null;
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
-  const stale = stored != null && stored.athleteId === athlete.id && stored.sourceRecordedAt !== latest.recordedAt;
+  const stale = stored != null && stored.athleteId === athlete.id && !sameTime(stored.sourceRecordedAt, latest.recordedAt);
 
   useEffect(() => {
     request.current += 1;
-    setStored(loadStored(athlete.id));
     setError(null);
     setLoading(false);
   }, [athlete.id]);
@@ -57,14 +35,11 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
     const ticket = ++request.current;
     setLoading(true);
     setError(null);
-    const athleteId = athlete.id;
-    const sourceRecordedAt = latest.recordedAt;
     try {
-      const analysis = await requestAnalysis(athlete);
+      const next = await requestAnalysis(athlete);
       if (request.current !== ticket) return;
-      const next = { athleteId, sourceRecordedAt, generatedAt: new Date().toISOString(), analysis };
-      saveStored(next);
-      setStored(next);
+      setAnalysis(next);
+      await refresh();
     } catch (caught) {
       if (request.current !== ticket) return;
       setError(caught instanceof Error ? caught.message : "Gemini could not complete the analysis.");
@@ -145,7 +120,7 @@ function SkillList({ title, skills, ratings, previous }: { title: string; skills
   );
 }
 
-function Results({ stored, onTraining }: { stored: Stored; onTraining: () => void }) {
+function Results({ stored, onTraining }: { stored: SavedAnalysis; onTraining: () => void }) {
   const { analysis } = stored;
   const generated = new Date(stored.generatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   return (

@@ -214,8 +214,8 @@ db.channel("spike-messaging")
     );
   })
   .on("postgres_changes", { event: "INSERT", schema: "public", table: "training_plans" }, async (payload) => {
-    const row = payload.new as { plan_id: number; player_id: string; plan: TrainingPlan; texted_at: string | null };
-    if (row.texted_at) return;
+    const row = payload.new as { plan_id: number; player_id: string; plan: TrainingPlan; texted_at: string | null; kind?: string };
+    if (row.texted_at || (row.kind ?? "drills") !== "drills") return;
     const [contact] = await optedInContacts([row.player_id]);
     if (!contact) return;
     const exercises = await getExercises(db);

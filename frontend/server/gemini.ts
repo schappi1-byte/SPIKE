@@ -20,7 +20,7 @@ function brief(payload: PlayerPayload): string {
     const scores = SKILL_KEYS.map((key) => `${SKILL_LABEL[key]} ${item.skills[key]}`).join(", ");
     return `${item.recordedAt}: overall ${overall(item.skills)}. ${scores}. Strengths: ${item.strengths || "none"}. Weaknesses: ${item.weaknesses || "none"}. Priorities: ${item.priorities || "none"}.`;
   });
-  const latest = payload.evaluations[payload.evaluations.length - 1];
+  const latest = payload.evaluations[payload.evaluations.length - 1]!;
   const previous = payload.evaluations.length > 1 ? payload.evaluations[payload.evaluations.length - 2] : null;
   const change = previous
     ? SKILL_KEYS.map((key) => `${SKILL_LABEL[key]} ${latest.skills[key] - previous.skills[key]}`).join(", ")
@@ -58,7 +58,7 @@ const planExerciseSchema = {
 async function askGemini(prompt: string, schema: unknown, options: { apiKey?: string; model?: string; fetchImpl?: typeof fetch }, failure: string): Promise<{ ok: false; status: number; error: string } | { ok: true; value: unknown }> {
   const apiKey = options.apiKey?.trim() ?? "";
   if (!apiKey) return { ok: false, status: 503, error: "Gemini is not configured. Add GEMINI_API_KEY to the server environment and try again." };
-  const model = options.model?.trim() || "gemini-2.5-flash";
+  const model = options.model?.trim() || "gemini-3.8-flash";
   if (!/^[a-zA-Z0-9._-]+$/.test(model)) return { ok: false, status: 500, error: "GEMINI_MODEL is not a valid model name." };
   let response: Response;
   try {
@@ -72,6 +72,7 @@ async function askGemini(prompt: string, schema: unknown, options: { apiKey?: st
       signal: AbortSignal.timeout(45000),
     });
   } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") return { ok: false, status: 504, error: "Gemini took too long to respond. Try again in a minute." };
     return { ok: false, status: 502, error: scrub(error instanceof Error ? error.message : "Gemini could not be reached.", apiKey) };
   }
   let raw: unknown;

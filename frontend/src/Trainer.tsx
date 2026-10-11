@@ -5,7 +5,7 @@ import * as THREE from "three";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import type { AnimationId } from "./trainingPlan";
 
-const MODEL = "/models/xbot.glb";
+const MODEL = `${import.meta.env.BASE_URL}models/xbot.glb`;
 const CYCLE = 1.6;
 const LOOK: [number, number, number] = [0, 1.12, 0];
 const NAVY = new THREE.Color("#13294b");

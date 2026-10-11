@@ -6,6 +6,11 @@ import type { NextConfig } from "next";
 const backendEnv = join(process.cwd(), "backend", ".env.local");
 if (existsSync(backendEnv)) process.loadEnvFile(backendEnv);
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // The dashboard is the Vite app in frontend/, built into public/spa by `npm run build:frontend`.
+  async rewrites() {
+    return { beforeFiles: [{ source: "/", destination: "/spa/index.html" }], afterFiles: [], fallback: [] };
+  },
+};
 
 export default nextConfig;

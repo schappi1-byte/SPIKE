@@ -41,6 +41,9 @@ export type Athlete = {
   color: string;
   assessments: Assessment[];
   sessions: Session[];
+  playerId?: string;
+  /** Skills the season stats could not rate. They show as 50 until a coach saves an evaluation. */
+  unrated?: SkillKey[];
 };
 
 export type Formation = "4-2" | "5-1" | "6-2";
@@ -116,13 +119,13 @@ export function overall(skills: Skills): number {
 }
 
 export function latestAssessment(athlete: Athlete): Assessment {
-  return athlete.assessments[athlete.assessments.length - 1];
+  return athlete.assessments[athlete.assessments.length - 1]!;
 }
 
 export function trendDelta(athlete: Athlete): number | null {
   if (athlete.assessments.length < 2) return null;
   const current = overall(latestAssessment(athlete).skills);
-  const previous = overall(athlete.assessments[athlete.assessments.length - 2].skills);
+  const previous = overall(athlete.assessments[athlete.assessments.length - 2]!.skills);
   return current - previous;
 }
 
@@ -132,7 +135,7 @@ export function trainingPlan(athlete: Athlete): Exercise[] {
   return focus.map((skill) => {
     const drill = DRILLS[skill];
     const id = `${skill}:${drill.title}`;
-    const done = athlete.sessions.some((session) => session.exerciseId === id && session.completedAt >= current.recordedAt);
+    const done = athlete.sessions.some((session) => session.exerciseId.split(":")[0] === skill && session.completedAt >= current.recordedAt);
     return { id, skill, ...drill, done };
   });
 }
@@ -201,7 +204,7 @@ export function advanceSlots(slots: (number | null)[], steps: number): (number |
   for (let step = 0; step < count; step += 1) {
     const next: (number | null)[] = [null, null, null, null, null, null];
     current.forEach((id, index) => {
-      next[NEXT_SLOT[index]] = id;
+      next[NEXT_SLOT[index] ?? index] = id;
     });
     current = next;
   }
@@ -257,7 +260,7 @@ export function scoreLineup(slots: (number | null)[], rotation: number, athletes
     const scored = scoreArrangement(advanceSlots(slots, next - rotation), athletes);
     return { rotation: next, score: scored.current, front: scored.front, back: scored.back, fits: scored.fits };
   });
-  const current = rotations.find((item) => item.rotation === rotation) ?? rotations[0];
+  const current = rotations.find((item) => item.rotation === rotation) ?? rotations[0]!;
   const best = rotations.reduce((lead, item) => (item.score > lead.score ? item : lead));
   const weakest = rotations.reduce((lead, item) => (item.score < lead.score ? item : lead));
   return { current: current.score, front: current.front, back: current.back, overall: average(rotations.map((item) => item.score)), best, weakest, rotations };
@@ -282,7 +285,7 @@ export function lineupNotes(slots: (number | null)[], formation: Formation, rota
     if (invalid) notes.push("Invalid setter for 4-2");
   }
   const scored = scoreArrangement(slots, athletes);
-  const low = COURT_SPOTS.filter((spot, index) => slots[spot.index] != null && scored.fits[index] < 70).map((spot) => spot.number);
+  const low = COURT_SPOTS.filter((spot, index) => slots[spot.index] != null && (scored.fits[index] ?? 0) < 70).map((spot) => spot.number);
   if (low.length) notes.push(`Low fit in position ${low.join(", ")}`);
   const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
   const skillAt = (indexes: number[], skill: SkillKey) => {
@@ -324,6 +327,11 @@ export function historyPoints(athlete: Athlete): { label: string; value: number;
     label: formatWhen(assessment.recordedAt),
     value: overall(assessment.skills),
   }));
+}
+
+/** Timestamps from the database and the browser can differ in format for the same moment. */
+export function sameTime(a: string, b: string): boolean {
+  return a === b || new Date(a).getTime() === new Date(b).getTime();
 }
 
 export function formatWhen(iso: string): string {

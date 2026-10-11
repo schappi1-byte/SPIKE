@@ -70,7 +70,14 @@ export interface SavedPlan {
 
 export async function getLatestPlan(db: SupabaseClient, playerId: string): Promise<SavedPlan | null> {
   return unwrap<SavedPlan | null>(
-    await db.from("training_plans").select("*").eq("player_id", playerId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    await db
+      .from("training_plans")
+      .select("*")
+      .eq("player_id", playerId)
+      .eq("kind", "drills")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   );
 }
 

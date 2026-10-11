@@ -31,7 +31,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <p>
-        <Link href="/">← Roster</Link>
+        <Link href="/roster">← Roster</Link>
       </p>
       <h1>
         {player.jersey_number !== null ? `#${player.jersey_number} ` : ""}

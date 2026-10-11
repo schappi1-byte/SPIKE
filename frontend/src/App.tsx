@@ -10,35 +10,98 @@ type PlayerSection = "overview" | "analyze" | "training" | "system";
 type View = "landing" | "pick" | "coach" | "player";
 
 const PLAYER_SECTIONS: PlayerSection[] = ["overview", "analyze", "training", "system"];
+type Intent = "coach" | "player";
 
-function readPlayerHash(athleteIds: number[]): { athleteId: number; section: PlayerSection } | null {
-  const match = window.location.hash.match(/^#\/player\/(\d+)\/(overview|analyze|training|system)$/);
+function readHash(): { intent: Intent; athleteId: number | null; section: PlayerSection } | null {
+  const hash = window.location.hash;
+  if (hash === "#/coach") return { intent: "coach", athleteId: null, section: "overview" };
+  if (hash === "#/player") return { intent: "player", athleteId: null, section: "overview" };
+  const match = hash.match(/^#\/player\/(\d+)\/(overview|analyze|training|system)$/);
   if (!match) return null;
-  const athleteId = Number(match[1]);
   const section = match[2] as PlayerSection;
-  if (!athleteIds.includes(athleteId) || !PLAYER_SECTIONS.includes(section)) return null;
-  return { athleteId, section };
+  return { intent: "player", athleteId: Number(match[1]), section: PLAYER_SECTIONS.includes(section) ? section : "overview" };
+}
+
+function logIn(intent: Intent) {
+  window.location.href = `/login?next=${encodeURIComponent(`/#/${intent}`)}`;
 }
 
 export default function App() {
-  const { athletes } = useStore();
-  const restored = readPlayerHash(athletes.map((athlete) => athlete.id));
-  const [view, setView] = useState<View>(restored ? "player" : "landing");
-  const [athleteId, setAthleteId] = useState(restored?.athleteId ?? athletes[0]?.id ?? 1);
+  const { athletes, account, status, loadWarning } = useStore();
+  const [view, setView] = useState<View>("landing");
+  const [athleteId, setAthleteId] = useState(1);
   const [coachSection, setCoachSection] = useState<CoachSection>("overview");
-  const [playerSection, setPlayerSection] = useState<PlayerSection>(restored?.section ?? "overview");
+  const [playerSection, setPlayerSection] = useState<PlayerSection>("overview");
+  const [intent, setIntent] = useState(readHash);
+  const [notice, setNotice] = useState<string | null>(null);
   const exit = () => setView("landing");
 
   useEffect(() => {
+    if (!intent || status === "loading") return;
+    setIntent(null);
+    if (status === "signed-out") {
+      if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return;
+    }
+    if (status === "unavailable") {
+      setNotice(loadWarning ?? "The dashboard is unavailable right now. Try again in a moment.");
+      return;
+    }
+    if (athletes.length === 0) {
+      setNotice("No players are loaded for your team yet. Ask your coach to load the roster.");
+      return;
+    }
+    if (intent.intent === "coach") {
+      if (account.role !== "coach") {
+        setNotice(`You're signed in as ${account.name}, a player. Use the Player button to open your dashboard.`);
+        return;
+      }
+      setCoachSection("overview");
+      setView("coach");
+      return;
+    }
+    if (account.role === "player") {
+      if (account.athleteId == null || !athletes.some((athlete) => athlete.id === account.athleteId)) {
+        setNotice("Your login isn't linked to a player on the roster. Ask your coach.");
+        return;
+      }
+      setAthleteId(account.athleteId);
+      setPlayerSection(intent.section);
+      setView("player");
+      return;
+    }
+    if (intent.athleteId != null && athletes.some((athlete) => athlete.id === intent.athleteId)) {
+      setAthleteId(intent.athleteId);
+      setPlayerSection(intent.section);
+      setView("player");
+      return;
+    }
+    setView("pick");
+  }, [intent, status, account, athletes, loadWarning]);
+
+  useEffect(() => {
+    if (status === "signed-out") setView("landing");
+  }, [status]);
+
+  useEffect(() => {
     if (view !== "player") {
-      if (window.location.hash.startsWith("#/player/")) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      if (window.location.hash.startsWith("#/")) window.history.replaceState(null, "", window.location.pathname + window.location.search);
       return;
     }
     const next = `#/player/${athleteId}/${playerSection}`;
     if (window.location.hash !== next) window.history.replaceState(null, "", next);
   }, [view, athleteId, playerSection]);
 
-  if (view === "coach") {
+  // Dashboards need a loaded roster; anything else (signed out, loading, failed) shows the landing page.
+  const screen: View = status === "ready" && athletes.length > 0 ? view : "landing";
+
+  function choose(next: Intent) {
+    setNotice(null);
+    if (status === "signed-out") return logIn(next);
+    setIntent({ intent: next, athleteId: null, section: "overview" });
+  }
+
+  if (screen === "coach") {
     return (
       <Coach
         section={coachSection}
@@ -51,19 +114,19 @@ export default function App() {
     );
   }
 
-  if (view === "player") {
+  if (screen === "player") {
     return (
       <PlayerDash
         athleteId={athleteId}
         section={playerSection}
         onSection={setPlayerSection}
-        onSwitch={() => setView("pick")}
+        onSwitch={account.role === "coach" ? () => setView("pick") : null}
         onExit={exit}
       />
     );
   }
 
-  if (view === "pick") {
+  if (screen === "pick") {
     return (
       <main className="min-h-screen bg-canvas">
         <header className="border-b border-slate-200/80 bg-white">
@@ -75,7 +138,7 @@ export default function App() {
           <button type="button" onClick={exit} className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-ink"><Icon name="back" className="size-4" /> Back to home</button>
           <p className="text-sm font-semibold text-brand-ink">PLAYER PORTAL</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Who is checking in?</h1>
-          <p className="mt-2 text-slate-500">Choose a profile. Ratings and feedback are the same records the coach saves.</p>
+          <p className="mt-2 text-slate-500">Choose a player to open their dashboard. Ratings and feedback are the same records you save as coach.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             {athletes.map((athlete) => (
               <button key={athlete.id} type="button" onClick={() => { setAthleteId(athlete.id); setPlayerSection("overview"); setView("player"); }} className="card flex items-center gap-4 p-4 text-left hover:border-brand/40">
@@ -93,5 +156,5 @@ export default function App() {
     );
   }
 
-  return <Landing onCoach={() => { setCoachSection("overview"); setView("coach"); }} onPlayer={() => setView("pick")} />;
+  return <Landing onCoach={() => choose("coach")} onPlayer={() => choose("player")} notice={notice ?? (intent && status === "loading" ? "Checking your login…" : null)} />;
 }

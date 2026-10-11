@@ -1,18 +1,19 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { loadSavedAnalysis } from "./analysis";
-import { formatClock, formatWhen, latestAssessment, type Athlete } from "./model";
+import { formatClock, formatWhen, latestAssessment, sameTime, type Athlete } from "./model";
+import { useStore } from "./store";
 
 const Trainer = lazy(() => import("./Trainer"));
 import {
   exerciseSeconds,
   finishEffort,
-  loadPlan,
-  planRecord,
+  progressKey,
   requestTrainingPlan,
   savePlan,
   startSession,
   tickSession,
+  syncProgress,
   todayIndex,
+  withLocalProgress,
   type PlanExercise,
   type SavedPlan,
   type Session,
@@ -22,24 +23,40 @@ const PHASES = { warmup: "Warm-up", work: "Work", cooldown: "Cool-down" };
 
 export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
   const latest = latestAssessment(athlete);
-  const analysis = loadSavedAnalysis(athlete.id);
-  const [saved, setSaved] = useState<SavedPlan | null>(() => loadPlan(athlete.id));
+  const { analyses, plans, setPlan } = useStore();
+  const analysis = analyses[athlete.id] ?? null;
+  const server = plans[athlete.id] ?? null;
+  const [saved, setSaved] = useState<SavedPlan | null>(() => (server ? withLocalProgress(server) : null));
   const [day, setDay] = useState(todayIndex);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const request = useRef(0);
+  const synced = useRef(server ? progressKey(server) : "");
 
   useEffect(() => {
     request.current += 1;
-    setSaved(loadPlan(athlete.id));
+    setSaved(server ? withLocalProgress(server) : null);
+    synced.current = server ? progressKey(server) : "";
     setError(null);
+    setSyncError(null);
     setLoading(false);
     setDay(todayIndex());
-  }, [athlete.id]);
+  }, [athlete.id, server?.generatedAt]);
 
   function update(next: SavedPlan | null) {
     setSaved(next);
-    if (next) savePlan(next);
+    if (!next) return;
+    savePlan(next);
+    const planId = next.planId;
+    const key = progressKey(next);
+    if (planId == null || key === synced.current) return;
+    synced.current = key;
+    void syncProgress(planId, next).then((problem) => {
+      setSyncError(problem);
+      if (problem) synced.current = "";
+      else setPlan(athlete.id, { ...next, planId });
+    });
   }
 
   async function generate() {
@@ -49,7 +66,10 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
     try {
       const plan = await requestTrainingPlan(athlete);
       if (request.current !== ticket) return;
-      update(planRecord(athlete, plan, analysis));
+      synced.current = progressKey(plan);
+      savePlan(plan);
+      setPlan(athlete.id, plan);
+      setSaved(plan);
     } catch (caught) {
       if (request.current !== ticket) return;
       setError(caught instanceof Error ? caught.message : "Gemini could not build a training plan.");
@@ -72,9 +92,14 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
     );
   }
 
-  const stale = saved.sourceRecordedAt !== latest.recordedAt || (analysis != null && saved.analysisAt !== analysis.generatedAt);
+  const stale = !sameTime(saved.sourceRecordedAt, latest.recordedAt) || (analysis != null && !sameTime(saved.analysisAt ?? "", analysis.generatedAt));
   if (saved.session) {
-    return <Workout saved={saved} onChange={update} />;
+    return (
+      <>
+        {syncError && <p className="mx-auto mb-3 max-w-5xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{syncError}</p>}
+        <Workout saved={saved} onChange={update} />
+      </>
+    );
   }
 
   const selected = saved.plan.days[day];
@@ -96,6 +121,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
         <h2 className="mt-1 text-2xl font-bold tracking-tight">{saved.plan.goal}</h2>
         <p className="mt-2 text-sm text-slate-500">Created {formatWhen(saved.generatedAt)}. Practice guidance only. It does not prevent injuries or guarantee improvement. Stop if something hurts.</p>
         {stale && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">A newer evaluation or analysis is saved. Create a new week when you want the plan to match it.</p>}
+        {syncError && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{syncError}</p>}
       </section>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Stat label="Today" value={`${todayDone.length}/${saved.plan.days[today].exercises.length}`} note={saved.plan.days[today].name} />
@@ -161,7 +187,9 @@ function Workout({ saved, onChange }: { saved: SavedPlan; onChange: (next: Saved
     return () => {
       const current = savedRef.current;
       if (!keep.current || !current.session || current.session.phase === "paused" || current.session.phase === "completed") return;
-      savePlan({ ...current, session: { ...current.session, phase: "paused", resume: current.session.phase } });
+      const paused = { ...current, session: { ...current.session, phase: "paused" as const, resume: current.session.phase } };
+      savePlan(paused);
+      if (current.planId != null) void syncProgress(current.planId, paused);
     };
   }, []);
 

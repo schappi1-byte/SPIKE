@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   if (!isSupabaseConfigured()) return <SetupNotice />;
-  const { next = "/chat" } = await searchParams;
-  if (await getAccount()) redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/chat");
+  const { next = "/" } = await searchParams;
+  if (await getAccount()) redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
 
   // Names only. The list is what people pick from instead of typing a username.
   const { data } = await adminClient().from("profiles").select("username, display_name, role").order("display_name");

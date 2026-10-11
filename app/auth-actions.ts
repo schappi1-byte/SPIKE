@@ -23,7 +23,7 @@ function field(form: FormData, name: string): string {
 
 /** Only same-site paths, so a crafted link can't send someone to another site after logging in. */
 function safeNext(value: string): string {
-  return value.startsWith("/") && !value.startsWith("//") ? value : "/chat";
+  return value.startsWith("/") && !value.startsWith("//") ? value : "/";
 }
 
 export async function logIn(_prev: FormState, form: FormData): Promise<FormState> {
@@ -124,7 +124,7 @@ async function trySignUp(form: FormData): Promise<FormState> {
   const db = await userClient();
   const { error: signInError } = await db.auth.signInWithPassword({ email, password: passcode });
   if (signInError) return { error: "Your account is ready. Log in to continue." };
-  redirect("/chat");
+  redirect(`/#/${role}`);
 }
 
 async function deleteOrphanedLogin(email: string) {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SignupPage() {
   if (!isSupabaseConfigured()) return <SetupNotice />;
-  if (await getAccount()) redirect("/chat");
+  if (await getAccount()) redirect("/");
 
   const db = adminClient();
   const [team] = await getTeams(db);

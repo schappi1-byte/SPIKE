@@ -42,7 +42,7 @@ function recommendation(value: unknown): Recommendation | null {
   const item = value as Record<string, unknown>;
   const fields = TEXT_KEYS.map((key) => text(item[key], 500));
   if (fields.some((field) => field == null)) return null;
-  const [skill, title, explanation, instructions, dosage, purpose] = fields as string[];
+  const [skill, title, explanation, instructions, dosage, purpose] = fields as [string, string, string, string, string, string];
   return { skill, title, explanation, instructions, dosage, purpose };
 }
 
@@ -121,13 +121,16 @@ export function payloadFrom(athlete: Athlete): PlayerPayload {
   };
 }
 
-export async function requestAnalysis(athlete: Athlete): Promise<PlayerAnalysis> {
+export type SavedAnalysis = { athleteId: number; sourceRecordedAt: string; generatedAt: string; analysis: PlayerAnalysis };
+
+/** Asks the server to analyze the athlete's saved evaluations. The server saves the result. */
+export async function requestAnalysis(athlete: Athlete): Promise<SavedAnalysis> {
   let response: Response;
   try {
     response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payloadFrom(athlete)),
+      body: JSON.stringify({ playerId: athlete.playerId }),
     });
   } catch {
     throw new Error("The analysis request did not reach the server. Try again.");
@@ -142,24 +145,14 @@ export async function requestAnalysis(athlete: Athlete): Promise<PlayerAnalysis>
     const message = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "Gemini could not complete the analysis.";
     throw new Error(message);
   }
-  const analysis = body && typeof body === "object" && "analysis" in body ? readAnalysis(body.analysis) : null;
-  if (!analysis) throw new Error("Gemini returned an incomplete analysis. Try again.");
-  return analysis;
+  const saved = body && typeof body === "object" && "analysis" in body && body.analysis && typeof body.analysis === "object" ? (body.analysis as Record<string, unknown>) : null;
+  const analysis = saved ? readAnalysis(saved.analysis) : null;
+  if (!saved || !analysis || typeof saved.sourceRecordedAt !== "string" || typeof saved.generatedAt !== "string") {
+    throw new Error("Gemini returned an incomplete analysis. Try again.");
+  }
+  return { athleteId: athlete.id, sourceRecordedAt: saved.sourceRecordedAt, generatedAt: saved.generatedAt, analysis };
 }
 
 export function skillDelta(current: Skills, previous: Skills | null, key: SkillKey): number | null {
   return previous ? current[key] - previous[key] : null;
-}
-
-export function loadSavedAnalysis(athleteId: number): { athleteId: number; sourceRecordedAt: string; generatedAt: string; analysis: PlayerAnalysis } | null {
-  if (typeof localStorage === "undefined") return null;
-  try {
-    const saved = JSON.parse(localStorage.getItem("spike-player-analysis-v1") || "{}") as Record<string, { athleteId?: number; sourceRecordedAt?: string; generatedAt?: string; analysis?: unknown }>;
-    const item = saved[String(athleteId)];
-    const analysis = item ? readAnalysis(item.analysis) : null;
-    if (!item || item.athleteId !== athleteId || !analysis || typeof item.sourceRecordedAt !== "string" || typeof item.generatedAt !== "string") return null;
-    return { athleteId, sourceRecordedAt: item.sourceRecordedAt, generatedAt: item.generatedAt, analysis };
-  } catch {
-    return null;
-  }
 }

@@ -1,9 +1,9 @@
 export const SYSTEM = {
-  persistence: "Evaluations, feedback, training completions, and saved lineups stay in this browser.",
-  roster: "The starting roster is prototype data, not a live academy feed.",
+  persistence: "Evaluations, feedback, Gemini analyses, training plans and progress, and saved lineups are saved in the team database through the SPIKE server.",
+  roster: "The roster, season stats, and starting ratings come from the UNC Chapel Hill data loaded into the database. Starting ratings are generated from 2026 season stats until a coach saves an evaluation.",
   services: [
-    { name: "Gemini", state: "Server endpoint", detail: "The player Analyze page calls /api/analyze. A recommendation is shown only when Gemini returns it. The server reads GEMINI_API_KEY and does not send that key to the browser." },
-    { name: "Snowflake", state: "Not connected", detail: "History is the assessments stored on this device." },
+    { name: "Gemini", state: "Server endpoint", detail: "Analyze and Training call /api/analyze and /api/training. The server builds the request from saved evaluations, reads GEMINI_API_KEY, and never sends that key to the browser." },
+    { name: "Supabase", state: "Connected", detail: "Evaluation history, ratings, feedback, plans, lineups, logins, and team chat are stored in Supabase." },
     { name: "MediaPipe", state: "Not connected", detail: "No camera or pose tracking is running." },
     { name: "Lineup optimizer", state: "Not connected", detail: "Suggest placement ranks athletes by the skill each spot needs. It does not run an optimizer." },
   ],

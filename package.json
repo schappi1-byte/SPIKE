@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "dev:frontend": "cd frontend && npx -y pnpm@10.34.3 dev",
+    "build:frontend": "cd frontend && npx -y pnpm@10.34.3 install --frozen-lockfile && npx -y pnpm@10.34.3 exec vite build --base=/spa/ --outDir ../public/spa --emptyOutDir",
+    "build": "npm run build:frontend && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:link": "supabase link --workdir backend --project-ref qjtolrswazbmcureevta",
@@ -16,7 +18,8 @@
     "data:build": "python3 backend/scripts/build-data.py && node backend/scripts/build-rotations.mts",
     "db:seed": "node --env-file-if-exists=backend/.env.local backend/scripts/load-data.mjs",
     "contact:add": "node --env-file-if-exists=backend/.env.local backend/scripts/add-contact.mjs",
-    "messaging": "npm --prefix backend/messaging run start"
+    "messaging": "npm --prefix backend/messaging run start",
+    "test": "cd frontend && node --test src/*.test.ts server/*.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

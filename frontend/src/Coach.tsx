@@ -67,7 +67,7 @@ function greeting(): string {
 }
 
 function Overview({ onOpen }: { onOpen: (id: number) => void }) {
-  const { athletes } = useStore();
+  const { athletes, account, team } = useStore();
   const [query, setQuery] = useState("");
   const ratings = athletes.map((athlete) => ratingOf(athlete));
   const average = Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10;
@@ -83,8 +83,8 @@ function Overview({ onOpen }: { onOpen: (id: number) => void }) {
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <p className="text-sm font-semibold text-brand-ink">SQUAD</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">{greeting()}, Coach</h1>
-          <p className="mt-2 text-sm text-slate-500">Prototype roster stored on this device. Ratings update when you save an evaluation.</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{greeting()}, {account.name || "Coach"}</h1>
+          <p className="mt-2 text-sm text-slate-500">{team.name} roster. Ratings update when you save an evaluation.</p>
         </div>
       </div>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -183,6 +183,7 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
   const [draft, setDraft] = useState<DraftInput>(() => draftFrom(athlete));
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const next = athletes.find((item) => item.id === athleteId) ?? athletes[0];
@@ -214,15 +215,18 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <form
           className="card p-6"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
             if (!dirty) {
               setError("This matches the latest evaluation.");
               return;
             }
-            const saved = saveAssessment(athlete.id, draft);
-            if (!saved) {
-              setError("This matches the latest evaluation.");
+            setSaving(true);
+            setMessage(null);
+            const problem = await saveAssessment(athlete.id, draft);
+            setSaving(false);
+            if (problem) {
+              setError(problem);
               return;
             }
             setError(null);
@@ -237,6 +241,7 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
             </div>
             <button type="button" onClick={onOpenPlayer} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Open athlete view</button>
           </div>
+          {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")}. {athlete.unrated.length === 1 ? "It shows" : "They show"} as 50 until you save an evaluation.</p>}
           <div className="mt-6 space-y-4">
             {SKILL_KEYS.map((key) => (
               <label key={key} className="block text-sm">
@@ -251,7 +256,7 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
           {error && <p className="mt-4 text-sm font-medium text-amber-700" role="alert">{error}</p>}
           {message && <p className="mt-4 text-sm font-medium text-emerald-700" role="status">{message}</p>}
           <div className="mt-5 flex gap-2">
-            <button type="submit" className="rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-navy hover:bg-brand-light">Save evaluation</button>
+            <button type="submit" disabled={saving} className="rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60">{saving ? "Saving…" : "Save evaluation"}</button>
             <button type="button" onClick={() => { setDraft(draftFrom(athlete)); setMessage(null); setError(null); }} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600">Cancel</button>
           </div>
         </form>
@@ -461,7 +466,7 @@ function LineupBoard() {
             Name
             <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-normal" />
           </label>
-          <button type="button" onClick={() => { saveDraft(); setMessage(draft.sourceId ? "Saved lineup updated." : "Lineup saved on this device."); }} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-navy">Save lineup</button>
+          <button type="button" onClick={async () => { const updating = draft.sourceId != null; const problem = await saveDraft(); setMessage(problem ?? (updating ? "Saved lineup updated." : "Lineup saved for your team.")); }} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-navy">Save lineup</button>
           <div className="mt-3 space-y-2">
             {lineups.length === 0 && <p className="px-2 text-sm text-slate-500">No saved lineups yet.</p>}
             {lineups.map((lineup) => (
@@ -470,7 +475,7 @@ function LineupBoard() {
                   <span className="block truncate text-sm font-semibold">{lineup.name}</span>
                   <span className="block text-xs text-slate-500">{lineup.formation} · rotation {lineup.rotation}</span>
                 </button>
-                <button type="button" onClick={() => deleteLineup(lineup.id)} className="text-xs font-semibold text-slate-400 hover:text-rose-600">Delete</button>
+                <button type="button" onClick={async () => { const problem = await deleteLineup(lineup.id); setMessage(problem ?? `Deleted ${lineup.name}.`); }} className="text-xs font-semibold text-slate-400 hover:text-rose-600">Delete</button>
               </div>
             ))}
           </div>

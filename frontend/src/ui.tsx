@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { SKILL_KEYS, SKILL_LABEL, historyPoints, overall, type Athlete, type Skills } from "./model";
+import { useStore } from "./store";
 import { SYSTEM } from "./system";
 
 const paths: Record<string, ReactNode> = {
@@ -186,6 +187,7 @@ export function Shell({
   dock?: boolean;
   children: ReactNode;
 }) {
+  const { signOut } = useStore();
   return (
     <div className={dock ? "min-h-screen bg-canvas" : "min-h-screen bg-canvas lg:grid lg:grid-cols-[240px_1fr]"}>
       {!dock && <aside className="hidden bg-navy text-white lg:flex lg:min-h-screen lg:flex-col lg:px-4 lg:py-6">
@@ -204,7 +206,11 @@ export function Shell({
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
             {!dock && <p className="hidden text-sm text-slate-500 lg:block">{label}</p>}
-            <button type="button" onClick={onExit} className="ml-auto rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Exit</button>
+            <div className="ml-auto flex items-center gap-2">
+              <a href="/chat" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">Team chat</a>
+              <button type="button" onClick={() => void signOut()} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">Sign out</button>
+              <button type="button" onClick={onExit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Exit</button>
+            </div>
           </div>
         </header>
         {warning && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:mx-8" role="status">{warning}</p>}

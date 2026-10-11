@@ -1,5 +1,5 @@
-import { loadSavedAnalysis, payloadFrom, type PlayerAnalysis } from "./analysis.ts";
-import { latestAssessment, type Athlete } from "./model.ts";
+import type { PlayerAnalysis } from "./analysis.ts";
+import type { Athlete } from "./model.ts";
 
 export const ANIMATIONS = ["squat", "lunge", "calf-raise", "squat-jump", "shuffle", "arm-raise"] as const;
 export type AnimationId = (typeof ANIMATIONS)[number] | "none";
@@ -32,6 +32,7 @@ export type Session = {
 };
 
 export type SavedPlan = {
+  planId?: number;
   athleteId: number;
   generatedAt: string;
   sourceRecordedAt: string;
@@ -109,6 +110,7 @@ function blankDone(): number[][] {
   return Array.from({ length: 7 }, () => []);
 }
 
+/** The workout timer's copy on this device. The server keeps the plan and confirmed progress. */
 export function loadPlan(athleteId: number): SavedPlan | null {
   if (typeof localStorage === "undefined") return null;
   try {
@@ -163,14 +165,14 @@ export function finishEffort(session: Session, exercise: PlanExercise): { sessio
   };
 }
 
-export async function requestTrainingPlan(athlete: Athlete): Promise<WeekPlan> {
-  const saved = loadSavedAnalysis(athlete.id);
+/** Asks the server for a Gemini week plan. The server builds it from saved records and saves it. */
+export async function requestTrainingPlan(athlete: Athlete): Promise<SavedPlan & { planId: number }> {
   let response: Response;
   try {
     response = await fetch("/api/training", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payloadFrom(athlete), analysis: saved?.analysis ?? null }),
+      body: JSON.stringify({ playerId: athlete.playerId }),
     });
   } catch {
     throw new Error("The training request did not reach the server. Try again.");
@@ -185,21 +187,56 @@ export async function requestTrainingPlan(athlete: Athlete): Promise<WeekPlan> {
     const message = body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "Gemini could not build a training plan.";
     throw new Error(message);
   }
-  const plan = body && typeof body === "object" && "plan" in body ? readTrainingPlan(body.plan) : null;
-  if (!plan) throw new Error("Gemini returned an incomplete training plan. Try again.");
-  return plan;
-}
-
-export function planRecord(athlete: Athlete, plan: WeekPlan, analysis: { generatedAt: string } | null): SavedPlan {
+  const saved = body && typeof body === "object" && "plan" in body && body.plan && typeof body.plan === "object" ? (body.plan as Record<string, unknown>) : null;
+  const plan = saved ? readTrainingPlan(saved.plan) : null;
+  if (!saved || !plan || typeof saved.planId !== "number" || typeof saved.generatedAt !== "string" || typeof saved.sourceRecordedAt !== "string") {
+    throw new Error("Gemini returned an incomplete training plan. Try again.");
+  }
   return {
+    planId: saved.planId,
     athleteId: athlete.id,
-    generatedAt: new Date().toISOString(),
-    sourceRecordedAt: latestAssessment(athlete).recordedAt,
-    analysisAt: analysis?.generatedAt ?? null,
+    generatedAt: saved.generatedAt,
+    sourceRecordedAt: saved.sourceRecordedAt,
+    analysisAt: typeof saved.analysisAt === "string" ? saved.analysisAt : null,
     plan,
     done: blankDone(),
     session: null,
   };
+}
+
+/** The server's plan, with this device's running workout if it belongs to the same plan. */
+export function withLocalProgress(server: SavedPlan): SavedPlan {
+  const local = loadPlan(server.athleteId);
+  if (!local || local.generatedAt !== server.generatedAt) return server;
+  const done = server.done.map((day, index) => [...new Set([...day, ...(local.done[index] ?? [])])]);
+  return { ...server, done, session: local.session ?? server.session };
+}
+
+/** A workout in progress is saved paused, so it resumes cleanly on any device. */
+function resumable(session: Session | null): Session | null {
+  if (!session || session.phase === "paused" || session.phase === "completed") return session;
+  return { ...session, phase: "paused", resume: session.phase };
+}
+
+/** What the server needs to know changed: finished exercises, or starting, pausing, moving on, or ending a workout. */
+export function progressKey(item: SavedPlan): string {
+  const session = item.session;
+  return JSON.stringify([item.done, session ? [session.day, session.exercise, session.phase === "paused", session.phase === "completed"] : null]);
+}
+
+export async function syncProgress(planId: number, item: SavedPlan): Promise<string | null> {
+  try {
+    const response = await fetch("/api/training", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId, done: item.done, session: resumable(item.session) }),
+    });
+    if (response.ok) return null;
+    const body: unknown = await response.json().catch(() => null);
+    return body && typeof body === "object" && "error" in body && typeof body.error === "string" ? body.error : "Progress could not be saved.";
+  } catch {
+    return "Progress could not be saved. Check your connection; it will be sent with your next change.";
+  }
 }
 
 export type { PlayerAnalysis };

@@ -16,14 +16,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <header className="site">
-          <Link href="/" className="brand">
+          <a href="/" className="brand">
             SPIKE
-          </Link>
+          </a>
           <nav>
-            <Link href="/">Roster</Link>
-            <Link href="/lineup">Lineup</Link>
-            <Link href="/live">Live court</Link>
-            <Link href="/insights">Insights</Link>
+            <a href="/">Dashboard</a>
             {account ? <Link href="/chat">Chat</Link> : null}
           </nav>
           <div className="account">

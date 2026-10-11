@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 import siteConfiguration from './.figma/make/site.json'
-import { geminiPlugin } from './server/plugin.ts'
 
 
 // Vite config — https://vitejs.dev/config/
@@ -25,7 +24,6 @@ react(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
-      geminiPlugin(),
     ],
     resolve: {
       alias: {
@@ -36,6 +34,8 @@ react(),
       host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
       port: parseInt(process.env.PORT || '8443'),
       strictPort: true,
+      // The SPIKE API is the Next.js server at the repo root (npm run dev).
+      proxy: { '/api': process.env.SPIKE_API_URL || 'http://localhost:3000' },
       watch: {
         ignored: [
           '**/.figma/**',

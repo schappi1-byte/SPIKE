@@ -24,7 +24,7 @@ function Volleyball() {
   );
 }
 
-export default function Landing({ onCoach, onPlayer }: { onCoach: () => void; onPlayer: () => void }) {
+export default function Landing({ onCoach, onPlayer, notice = null }: { onCoach: () => void; onPlayer: () => void; notice?: string | null }) {
   return (
     <main className="aurora grid min-h-dvh place-items-center px-6 text-white">
       <div className="flex w-full max-w-3xl flex-col items-center text-center">
@@ -37,6 +37,7 @@ export default function Landing({ onCoach, onPlayer }: { onCoach: () => void; on
           <Button onClick={onCoach}>Coach</Button>
           <Button onClick={onPlayer} secondary>Player</Button>
         </div>
+        {notice && <p className="mt-6 max-w-md rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-sm text-white backdrop-blur" role="status">{notice}</p>}
       </div>
     </main>
   );

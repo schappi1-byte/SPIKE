@@ -23,14 +23,14 @@ export default function PlayerDash({
   athleteId: number;
   section: Section;
   onSection: (section: Section) => void;
-  onSwitch: () => void;
+  onSwitch: (() => void) | null;
   onExit: () => void;
 }) {
   const { athletes, loadWarning } = useStore();
   const athlete = athletes.find((item) => item.id === athleteId) ?? athletes[0];
   return (
     <Shell dock label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
-      <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand-ink">Switch player</button>
+      {onSwitch && <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand-ink">Switch player</button>}
       {section === "overview" && <Overview athlete={athlete} />}
       {section === "analyze" && <Analyze athlete={athlete} onTraining={() => onSection("training")} />}
       {section === "training" && <TrainingBoard athlete={athlete} />}
@@ -69,11 +69,12 @@ function Overview({ athlete }: { athlete: Athlete }) {
           </div>
         </div>
       </section>
+      {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")} yet. {athlete.unrated.length === 1 ? "It shows" : "They show"} as 50 until your coach saves an evaluation.</p>}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card p-6">
           <p className="text-sm font-semibold text-brand-ink">How am I performing?</p>
           <h2 className="mt-1 font-bold">Latest skill profile</h2>
-          <p className="mt-1 text-sm text-slate-500">Updated {formatWhen(latest.recordedAt)} · prototype roster until a coach saves a new evaluation</p>
+          <p className="mt-1 text-sm text-slate-500">Updated {formatWhen(latest.recordedAt)}</p>
           <div className="mt-5"><RadarChart skills={latest.skills} /></div>
         </section>
         <section className="card p-6">

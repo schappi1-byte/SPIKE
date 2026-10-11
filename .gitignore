@@ -153,3 +153,6 @@ vite.config.ts.timestamp-*
 .turbo
 .env*
 !.env.example
+
+# Built dashboard (npm run build:frontend)
+/public/spa
