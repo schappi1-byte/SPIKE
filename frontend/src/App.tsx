@@ -7,99 +7,33 @@ import { Avatar, Icon } from "./ui";
 
 type CoachSection = "overview" | "evaluate" | "lineup" | "system";
 type PlayerSection = "overview" | "analyze" | "training" | "system";
-type View = "landing" | "pick" | "coach" | "player";
+type CoachView = "coach" | "player" | "pick";
 
-const PLAYER_SECTIONS: PlayerSection[] = ["overview", "analyze", "training", "system"];
-type Intent = "coach" | "player";
-
-function readHash(): { intent: Intent; athleteId: number | null; section: PlayerSection } | null {
-  const hash = window.location.hash;
-  if (hash === "#/coach") return { intent: "coach", athleteId: null, section: "overview" };
-  if (hash === "#/player") return { intent: "player", athleteId: null, section: "overview" };
-  const match = hash.match(/^#\/player\/(\d+)\/(overview|analyze|training|system)$/);
-  if (!match) return null;
-  const section = match[2] as PlayerSection;
-  return { intent: "player", athleteId: Number(match[1]), section: PLAYER_SECTIONS.includes(section) ? section : "overview" };
+function readHash(): { athleteId: number; section: PlayerSection } | null {
+  const match = window.location.hash.match(/^#\/player\/(\d+)\/(overview|analyze|training|system)$/);
+  return match ? { athleteId: Number(match[1]), section: match[2] as PlayerSection } : null;
 }
 
-function logIn(intent: Intent) {
-  window.location.href = `/login?next=${encodeURIComponent(`/#/${intent}`)}`;
-}
+const go = (path: string) => () => { window.location.href = path; };
 
 export default function App() {
-  const { athletes, account, status, loadWarning } = useStore();
-  const [view, setView] = useState<View>("landing");
-  const [athleteId, setAthleteId] = useState(1);
+  const { athletes, account, status, loadWarning, signOut } = useStore();
+  const [initial] = useState(readHash);
+  const [coachView, setCoachView] = useState<CoachView>(() => (initial ? "player" : "coach"));
+  const [athleteId, setAthleteId] = useState(initial?.athleteId ?? 1);
   const [coachSection, setCoachSection] = useState<CoachSection>("overview");
-  const [playerSection, setPlayerSection] = useState<PlayerSection>("overview");
-  const [intent, setIntent] = useState(readHash);
-  const [notice, setNotice] = useState<string | null>(null);
-  const exit = () => setView("landing");
+  const [playerSection, setPlayerSection] = useState<PlayerSection>(initial?.section ?? "overview");
+
+  const isCoach = account.role === "coach";
+  const ownAthlete = athletes.find((athlete) => athlete.id === account.athleteId);
+  const coachTarget = athletes.some((athlete) => athlete.id === athleteId) ? coachView : coachView === "player" ? "coach" : coachView;
+  const screen = status !== "ready" || athletes.length === 0 ? null : isCoach ? coachTarget : ownAthlete ? "player" : null;
+  const shownAthleteId = isCoach ? athleteId : ownAthlete?.id ?? 0;
 
   useEffect(() => {
-    if (!intent || status === "loading") return;
-    setIntent(null);
-    if (status === "signed-out") {
-      if (window.location.hash) window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      return;
-    }
-    if (status === "unavailable") {
-      setNotice(loadWarning ?? "The dashboard is unavailable right now. Try again in a moment.");
-      return;
-    }
-    if (athletes.length === 0) {
-      setNotice("No players are loaded for your team yet. Ask your coach to load the roster.");
-      return;
-    }
-    if (intent.intent === "coach") {
-      if (account.role !== "coach") {
-        setNotice(`You're signed in as ${account.name}, a player. Use the Player button to open your dashboard.`);
-        return;
-      }
-      setCoachSection("overview");
-      setView("coach");
-      return;
-    }
-    if (account.role === "player") {
-      if (account.athleteId == null || !athletes.some((athlete) => athlete.id === account.athleteId)) {
-        setNotice("Your login isn't linked to a player on the roster. Ask your coach.");
-        return;
-      }
-      setAthleteId(account.athleteId);
-      setPlayerSection(intent.section);
-      setView("player");
-      return;
-    }
-    if (intent.athleteId != null && athletes.some((athlete) => athlete.id === intent.athleteId)) {
-      setAthleteId(intent.athleteId);
-      setPlayerSection(intent.section);
-      setView("player");
-      return;
-    }
-    setView("pick");
-  }, [intent, status, account, athletes, loadWarning]);
-
-  useEffect(() => {
-    if (status === "signed-out") setView("landing");
-  }, [status]);
-
-  useEffect(() => {
-    if (view !== "player") {
-      if (window.location.hash.startsWith("#/")) window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      return;
-    }
-    const next = `#/player/${athleteId}/${playerSection}`;
-    if (window.location.hash !== next) window.history.replaceState(null, "", next);
-  }, [view, athleteId, playerSection]);
-
-  // Dashboards need a loaded roster; anything else (signed out, loading, failed) shows the landing page.
-  const screen: View = status === "ready" && athletes.length > 0 ? view : "landing";
-
-  function choose(next: Intent) {
-    setNotice(null);
-    if (status === "signed-out") return logIn(next);
-    setIntent({ intent: next, athleteId: null, section: "overview" });
-  }
+    const next = screen === "player" ? `#/player/${shownAthleteId}/${playerSection}` : "";
+    if (window.location.hash !== next) window.history.replaceState(null, "", window.location.pathname + window.location.search + next);
+  }, [screen, shownAthleteId, playerSection]);
 
   if (screen === "coach") {
     return (
@@ -108,8 +42,7 @@ export default function App() {
         athleteId={athleteId}
         onSection={setCoachSection}
         onAthlete={setAthleteId}
-        onOpenPlayer={() => { setPlayerSection("overview"); setView("player"); }}
-        onExit={exit}
+        onOpenPlayer={() => { setPlayerSection("overview"); setCoachView("player"); }}
       />
     );
   }
@@ -117,11 +50,11 @@ export default function App() {
   if (screen === "player") {
     return (
       <PlayerDash
-        athleteId={athleteId}
+        athleteId={shownAthleteId}
         section={playerSection}
         onSection={setPlayerSection}
-        onSwitch={account.role === "coach" ? () => setView("pick") : null}
-        onExit={exit}
+        onSwitch={isCoach ? () => setCoachView("pick") : null}
+        onBack={isCoach ? () => setCoachView("coach") : null}
       />
     );
   }
@@ -129,19 +62,14 @@ export default function App() {
   if (screen === "pick") {
     return (
       <main className="min-h-screen bg-canvas">
-        <header className="border-b border-slate-200/80 bg-white">
-          <div className="mx-auto flex h-16 max-w-5xl items-center justify-end px-5">
-            <button type="button" onClick={exit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600">Exit</button>
-          </div>
-        </header>
         <div className="mx-auto max-w-5xl px-5 py-10">
-          <button type="button" onClick={exit} className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-ink"><Icon name="back" className="size-4" /> Back to home</button>
-          <p className="text-sm font-semibold text-brand-ink">PLAYER PORTAL</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Who is checking in?</h1>
-          <p className="mt-2 text-slate-500">Choose a player to open their dashboard. Ratings and feedback are the same records you save as coach.</p>
+          <button type="button" onClick={() => setCoachView("coach")} className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-ink"><Icon name="back" className="size-4" /> Back to coach dashboard</button>
+          <p className="text-sm font-semibold text-brand-ink">PLAYER DASHBOARDS</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">Whose dashboard do you want to see?</h1>
+          <p className="mt-2 text-slate-500">You see exactly what each player sees on their own dashboard.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             {athletes.map((athlete) => (
-              <button key={athlete.id} type="button" onClick={() => { setAthleteId(athlete.id); setPlayerSection("overview"); setView("player"); }} className="card flex items-center gap-4 p-4 text-left hover:border-brand/40">
+              <button key={athlete.id} type="button" onClick={() => { setAthleteId(athlete.id); setPlayerSection("overview"); setCoachView("player"); }} className="card flex items-center gap-4 p-4 text-left hover:border-brand/40">
                 <Avatar athlete={athlete} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{athlete.name}</span>
@@ -156,5 +84,11 @@ export default function App() {
     );
   }
 
-  return <Landing onCoach={() => choose("coach")} onPlayer={() => choose("player")} notice={notice ?? (intent && status === "loading" ? "Checking your login…" : null)} />;
+  if (status === "loading") return <Landing notice="Opening your dashboard…" />;
+  if (status === "signed-out") return <Landing actions={[{ label: "Log in", onClick: go("/login") }, { label: "Sign up", onClick: go("/signup"), secondary: true }]} />;
+
+  const signOutAction = [{ label: "Sign out", onClick: () => void signOut(), secondary: true }];
+  if (status === "unavailable") return <Landing notice={loadWarning ?? "The dashboard is unavailable right now. Try again in a moment."} actions={signOutAction} />;
+  if (athletes.length === 0) return <Landing notice="No players are loaded for your team yet. Ask your coach to load the roster." actions={signOutAction} />;
+  return <Landing notice="Your login isn't linked to a player on the roster. Ask your coach." actions={signOutAction} />;
 }

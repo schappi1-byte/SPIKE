@@ -173,7 +173,8 @@ export function Shell({
   section,
   sections,
   onSection,
-  onExit,
+  back = null,
+  chat,
   warning,
   dock = false,
   children,
@@ -182,7 +183,8 @@ export function Shell({
   section: string;
   sections: Section[];
   onSection: (id: string) => void;
-  onExit: () => void;
+  back?: { label: string; onClick: () => void } | null;
+  chat: { label: string; href: string };
   warning: string | null;
   dock?: boolean;
   children: ReactNode;
@@ -200,16 +202,16 @@ export function Shell({
             </button>
           ))}
         </nav>
-        <button type="button" onClick={onExit} className="mt-4 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white">Exit</button>
+        <button type="button" onClick={() => void signOut()} className="mt-4 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white">Sign out</button>
       </aside>}
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
             {!dock && <p className="hidden text-sm text-slate-500 lg:block">{label}</p>}
             <div className="ml-auto flex items-center gap-2">
-              <a href="/chat" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">Team chat</a>
-              <button type="button" onClick={() => void signOut()} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">Sign out</button>
-              <button type="button" onClick={onExit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Exit</button>
+              {back && <button type="button" onClick={back.onClick} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">{back.label}</button>}
+              <a href={chat.href} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">{chat.label}</a>
+              <button type="button" onClick={() => void signOut()} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Sign out</button>
             </div>
           </div>
         </header>

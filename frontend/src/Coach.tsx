@@ -39,18 +39,16 @@ export default function Coach({
   onSection,
   onAthlete,
   onOpenPlayer,
-  onExit,
 }: {
   section: Section;
   athleteId: number;
   onSection: (section: Section) => void;
   onAthlete: (id: number) => void;
   onOpenPlayer: () => void;
-  onExit: () => void;
 }) {
   const { loadWarning } = useStore();
   return (
-    <Shell label="Coach" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
+    <Shell label="Coach" section={section} sections={sections} onSection={(id) => onSection(id as Section)} chat={{ label: "Chat", href: "/chat" }} warning={loadWarning}>
       {section === "overview" && <Overview onOpen={(id) => { onAthlete(id); onSection("evaluate"); }} />}
       {section === "evaluate" && <Evaluate athleteId={athleteId} onAthlete={onAthlete} onOpenPlayer={onOpenPlayer} />}
       {section === "lineup" && <LineupBoard />}

@@ -37,7 +37,7 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
     privateThreads = account.player_id ? [{ key: account.player_id, title: "Coach", subtitle: "Private chat with your coaches" }] : [];
   }
 
-  const { thread: requested = "team" } = await searchParams;
+  const { thread: requested = privateThreads.length && !isCoach ? privateThreads[0]!.key : "team" } = await searchParams;
   const current = [team, ...privateThreads].find((t) => t.key === requested) ?? team;
   const initial = await getMessages(await userClient(), account.team_id, current.key === "team" ? null : current.key);
 

@@ -18,18 +18,20 @@ export default function PlayerDash({
   section,
   onSection,
   onSwitch,
-  onExit,
+  onBack,
 }: {
   athleteId: number;
   section: Section;
   onSection: (section: Section) => void;
   onSwitch: (() => void) | null;
-  onExit: () => void;
+  onBack: (() => void) | null;
 }) {
-  const { athletes, loadWarning } = useStore();
-  const athlete = athletes.find((item) => item.id === athleteId) ?? athletes[0];
+  const { athletes, account, loadWarning } = useStore();
+  const athlete = athletes.find((item) => item.id === athleteId) ?? athletes[0]!;
+  const thread = `/chat?thread=${encodeURIComponent(athlete.playerId ?? "")}`;
+  const chat = account.role === "coach" ? { label: `Message ${athlete.name.split(" ")[0]}`, href: thread } : { label: "Chat with coach", href: thread };
   return (
-    <Shell dock label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
+    <Shell dock label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} back={onBack && { label: "Coach dashboard", onClick: onBack }} chat={chat} warning={loadWarning}>
       {onSwitch && <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand-ink">Switch player</button>}
       {section === "overview" && <Overview athlete={athlete} />}
       {section === "analyze" && <Analyze athlete={athlete} onTraining={() => onSection("training")} />}

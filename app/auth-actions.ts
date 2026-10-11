@@ -124,7 +124,7 @@ async function trySignUp(form: FormData): Promise<FormState> {
   const db = await userClient();
   const { error: signInError } = await db.auth.signInWithPassword({ email, password: passcode });
   if (signInError) return { error: "Your account is ready. Log in to continue." };
-  redirect(`/#/${role}`);
+  redirect("/");
 }
 
 async function deleteOrphanedLogin(email: string) {
