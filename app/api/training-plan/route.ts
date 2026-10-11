@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   const db = adminClient();
   const ctx = await loadPlayerContext(db, playerId);
-  if (!ctx) return Response.json({ error: "Player not found or has no skill ratings." }, { status: 404 });
+  if (!ctx) return Response.json({ error: "Player not found, has no skill ratings, or no exercises are loaded." }, { status: 404 });
 
   const { plan, source } = await generateTrainingPlan(ctx);
   const { data, error } = await db

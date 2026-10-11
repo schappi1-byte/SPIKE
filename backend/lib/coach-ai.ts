@@ -22,13 +22,17 @@ export async function loadPlayerContext(db: SupabaseClient, playerId: string): P
   const byId = new Map(exercises.map((e) => [e.exercise_id, e]));
   const focusSkill = weakestSkills(player, player.skill_ratings)[0] ?? "passing";
   const mastered = new Set(progress.filter((p) => p.completed && p.progress_score >= MASTERED_SCORE).map((p) => p.exercise_id));
-  const candidates = exercises.filter((e) => e.target_skill === focusSkill && !mastered.has(e.exercise_id));
+  const forSkill = exercises.filter((e) => e.target_skill === focusSkill);
+  const unmastered = forSkill.filter((e) => !mastered.has(e.exercise_id));
+  const candidates = unmastered.length > 0 ? unmastered : forSkill.length > 0 ? forSkill : exercises;
+  // Plans need at least one drill; with none loaded there is nothing to build from.
+  if (candidates.length === 0) return null;
 
   return {
     player,
     progress: progress.map((p) => ({ ...p, exercise: byId.get(p.exercise_id) })),
     focusSkill,
-    candidates: candidates.length > 0 ? candidates : exercises.filter((e) => e.target_skill === focusSkill),
+    candidates,
   };
 }
 
