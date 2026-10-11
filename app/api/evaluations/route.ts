@@ -47,12 +47,14 @@ export async function POST(request: Request) {
     return Response.json({ error: `The evaluation was not saved: ${error instanceof Error ? error.message : "unknown error"}` }, { status: 500 });
   }
 
+  const previous = found.athlete.assessments.at(-1);
+  const unrated = (found.athlete.unrated ?? []).filter((key) => skills[key] === previous?.skills[key]);
   const { error } = await db
     .from("evaluations")
-    .insert({ player_id: playerId, skills, strengths, weaknesses, priorities, created_by: coach.user_id });
+    .insert({ player_id: playerId, skills, strengths, weaknesses, priorities, unrated, created_by: coach.user_id });
   if (error) return Response.json({ error: `The evaluation was not saved: ${error.message}` }, { status: 500 });
 
-  const ratings = Object.fromEntries(SKILL_KEYS.map((key) => [SKILL_COLUMN[key], toTen(skills[key])]));
+  const ratings = Object.fromEntries(SKILL_KEYS.map((key) => [SKILL_COLUMN[key], unrated.includes(key) ? null : toTen(skills[key])]));
   const { data: existing } = await db.from("coach_feedback").select("coach_comments").eq("player_id", playerId).maybeSingle<{ coach_comments: string }>();
   const [ratingResult, feedbackResult] = await Promise.all([
     db.from("skill_ratings").upsert({ player_id: playerId, ...ratings }),

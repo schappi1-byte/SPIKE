@@ -1,4 +1,4 @@
-import { SKILL_KEYS, type Athlete, type SkillKey, type Skills } from "./model.ts";
+import { SKILL_KEYS, sameTime, type Athlete, type SkillKey, type Skills } from "./model.ts";
 
 export type Recommendation = {
   skill: string;
@@ -25,6 +25,7 @@ export type PlayerPayload = {
     strengths: string;
     weaknesses: string;
     priorities: string;
+    unrated?: SkillKey[];
   }[];
 };
 
@@ -102,7 +103,8 @@ export function parsePayload(value: unknown): PlayerPayload | null {
     const weaknesses = note(entry.weaknesses);
     const priorities = note(entry.priorities);
     if (!recordedAt || !skills || strengths == null || weaknesses == null || priorities == null) return null;
-    return { recordedAt, skills, strengths, weaknesses, priorities };
+    const unrated = Array.isArray(entry.unrated) ? SKILL_KEYS.filter((key) => (entry.unrated as unknown[]).includes(key)) : [];
+    return { recordedAt, skills, strengths, weaknesses, priorities, unrated };
   });
   if (history.some((item) => item == null)) return null;
   return { player: { name, position, grade, number: Math.round(info.number) }, evaluations: history as PlayerPayload["evaluations"] };
@@ -111,17 +113,24 @@ export function parsePayload(value: unknown): PlayerPayload | null {
 export function payloadFrom(athlete: Athlete): PlayerPayload {
   return {
     player: { name: athlete.name, position: athlete.position, grade: athlete.grade, number: athlete.number },
-    evaluations: athlete.assessments.slice(-12).map((item) => ({
+    evaluations: athlete.assessments.slice(-3).map((item) => ({
       recordedAt: item.recordedAt,
       skills: { ...item.skills },
       strengths: item.strengths,
       weaknesses: item.weaknesses,
       priorities: item.priorities,
+      unrated: [...(item.unrated ?? [])],
     })),
   };
 }
 
 export type SavedAnalysis = { athleteId: number; sourceRecordedAt: string; generatedAt: string; analysis: PlayerAnalysis };
+
+/** The saved analysis, if it was made from the athlete's latest evaluation. */
+export function currentAnalysis(athlete: Athlete, saved: SavedAnalysis | null): SavedAnalysis | null {
+  const latest = athlete.assessments.at(-1);
+  return saved && latest && sameTime(saved.sourceRecordedAt, latest.recordedAt) ? saved : null;
+}
 
 /** Asks the server to analyze the athlete's saved evaluations. The server saves the result. */
 export async function requestAnalysis(athlete: Athlete): Promise<SavedAnalysis> {

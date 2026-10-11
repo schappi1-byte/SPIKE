@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { analyzePlayer, planTraining } from "./gemini.ts";
+import { coachPlayer } from "./gemini.ts";
+
+const ANALYSIS = { analysis: true, plan: false };
+const PLAN = { analysis: false, plan: true };
+const gemini = (value: unknown) => async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(value) }] } }] }));
 
 const skills = { serve: 80, pass: 62, set: 70, attack: 88, block: 74, defense: 66 };
 
@@ -30,14 +34,14 @@ const analysis = {
 };
 
 test("missing Gemini key returns a configuration error", async () => {
-  const result = await analyzePlayer(payload, { apiKey: "  " });
+  const result = await coachPlayer(payload, ANALYSIS, { apiKey: "  " });
   assert.equal(result.status, 503);
   assert.equal("error" in result.body && result.body.error.includes("GEMINI_API_KEY"), true);
 });
 
 test("invalid player data is rejected before calling Gemini", async () => {
   let called = false;
-  const result = await analyzePlayer({ player: { name: "A" } }, {
+  const result = await coachPlayer({ player: { name: "A" } }, ANALYSIS, {
     apiKey: "secret-key",
     fetchImpl: async () => {
       called = true;
@@ -49,7 +53,7 @@ test("invalid player data is rejected before calling Gemini", async () => {
 });
 
 test("Gemini failures stay on the server and hide the key", async () => {
-  const result = await analyzePlayer(payload, {
+  const result = await coachPlayer(payload, ANALYSIS, {
     apiKey: "secret-key",
     fetchImpl: async () => new Response(JSON.stringify({ error: { message: "quota exceeded for secret-key" } }), { status: 429 }),
   });
@@ -61,7 +65,7 @@ test("Gemini failures stay on the server and hide the key", async () => {
 test("a structured Gemini response is returned unchanged in meaning", async () => {
   let url = "";
   let header = "";
-  const result = await analyzePlayer(payload, {
+  const result = await coachPlayer(payload, ANALYSIS, {
     apiKey: "secret-key",
     fetchImpl: async (input, init) => {
       url = String(input);
@@ -78,7 +82,7 @@ test("a structured Gemini response is returned unchanged in meaning", async () =
 });
 
 test("a training plan without a key does not call Gemini", async () => {
-  const result = await planTraining(payload, { apiKey: "" });
+  const result = await coachPlayer(payload, PLAN, { apiKey: "" });
   assert.equal(result.status, 503);
 });
 
@@ -89,7 +93,7 @@ test("an unsupported training animation is not returned as a real movement", asy
     goal: "Quicker block step",
     days: names.map((name) => ({ name, exercises: [{ ...exercise, phase: "warmup", animation: "arm-raise", name: "Arm raise" }, exercise, { ...exercise, phase: "cooldown", animation: "none", reps: 0, durationSec: 30, name: "Walk" }] })),
   };
-  const result = await planTraining(payload, {
+  const result = await coachPlayer(payload, PLAN, {
     apiKey: "secret-key",
     fetchImpl: async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(plan) }] } }] })),
   });
@@ -99,10 +103,47 @@ test("an unsupported training animation is not returned as a real movement", asy
 });
 
 test("incomplete Gemini JSON is not turned into an analysis", async () => {
-  const result = await analyzePlayer(payload, {
+  const result = await coachPlayer(payload, ANALYSIS, {
     apiKey: "secret-key",
     fetchImpl: async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: "{\"summary\":\"Only a summary\"}" }] } }] })),
   });
   assert.equal(result.status, 502);
   assert.equal("analysis" in result.body, false);
+});
+
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const move = { name: "Squat", skill: "Blocking", animation: "squat", sets: 2, reps: 8, durationSec: 0, restSec: 30, instructions: "Sit and stand.", difficulty: "easy", phase: "work" };
+const week = { goal: "Quicker block step", days: days.map((name) => ({ name, exercises: [{ ...move, phase: "warmup" }, move, { ...move, phase: "cooldown" }] })) };
+
+test("one request returns both the analysis and the week plan", async () => {
+  let calls = 0;
+  let config: Record<string, unknown> = {};
+  const result = await coachPlayer(payload, { analysis: true, plan: true }, {
+    apiKey: "secret-key",
+    fetchImpl: async (_input, init) => {
+      calls += 1;
+      config = JSON.parse(String(init?.body)).generationConfig;
+      return gemini({ analysis, plan: week })();
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.status, 200);
+  assert.equal("analysis" in result.body && result.body.analysis?.priorities.length, 3);
+  assert.equal("plan" in result.body && result.body.plan?.days.length, 7);
+  assert.deepEqual(config.thinkingConfig, { thinkingBudget: 0 });
+  assert.equal(typeof config.maxOutputTokens, "number");
+});
+
+test("a plan-only request sends the saved analysis instead of asking for a new one", async () => {
+  let prompt = "";
+  const result = await coachPlayer({ ...payload, analysis }, PLAN, {
+    apiKey: "secret-key",
+    fetchImpl: async (_input, init) => {
+      prompt = JSON.parse(String(init?.body)).contents[0].parts[0].text;
+      return gemini(week)();
+    },
+  });
+  assert.equal(result.status, 200);
+  assert.equal(prompt.includes("Saved Gemini analysis: Passing is the main gap"), true);
+  assert.equal(prompt.includes("Return exactly 3 priority skills"), false);
 });

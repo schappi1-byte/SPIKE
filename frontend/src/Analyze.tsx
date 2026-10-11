@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { requestAnalysis, skillDelta, type Recommendation, type SavedAnalysis } from "./analysis";
-import { formatWhen, latestAssessment, sameTime, SKILL_KEYS, SKILL_LABEL, type Athlete, type SkillKey } from "./model";
+import { currentAnalysis, requestAnalysis, skillDelta, type Recommendation, type SavedAnalysis } from "./analysis";
+import { formatWhen, isRated, latestAssessment, SKILL_KEYS, SKILL_LABEL, type Athlete, type SkillKey } from "./model";
 import { useStore } from "./store";
 import { ratingOf } from "./ui";
 
@@ -8,15 +8,18 @@ const STEPS = ["Sending the latest evaluation…", "Waiting for Gemini…"];
 
 export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onTraining: () => void }) {
   const latest = latestAssessment(athlete);
-  const previous = athlete.assessments.length > 1 ? athlete.assessments[athlete.assessments.length - 2].skills : null;
-  const ranked = [...SKILL_KEYS].sort((a, b) => latest.skills[b] - latest.skills[a] || SKILL_LABEL[a].localeCompare(SKILL_LABEL[b]));
+  const earlier = athlete.assessments.length > 1 ? athlete.assessments[athlete.assessments.length - 2]! : null;
+  const previous = earlier?.skills ?? null;
+  const ranked = SKILL_KEYS.filter((key) => isRated(latest, key)).sort((a, b) => latest.skills[b] - latest.skills[a] || SKILL_LABEL[a].localeCompare(SKILL_LABEL[b]));
+  const change = (key: SkillKey) => (earlier && isRated(earlier, key) && isRated(latest, key) ? skillDelta(latest.skills, previous, key) : null);
   const { analyses, setAnalysis, refresh } = useStore();
   const stored: SavedAnalysis | null = analyses[athlete.id] ?? null;
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const request = useRef(0);
-  const stale = stored != null && stored.athleteId === athlete.id && !sameTime(stored.sourceRecordedAt, latest.recordedAt);
+  const current = currentAnalysis(athlete, stored);
+  const stale = stored != null && !current;
 
   useEffect(() => {
     request.current += 1;
@@ -58,7 +61,7 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
             <p className="mt-1 text-sm text-slate-500">#{athlete.number} · {athlete.position} · {athlete.grade}</p>
           </div>
           <div>
-            <p className="text-3xl font-bold tabular-nums">{ratingOf(athlete)}</p>
+            <p className="text-3xl font-bold tabular-nums">{ratingOf(athlete) ?? "—"}</p>
             <p className="text-xs text-slate-500">Overall rating</p>
           </div>
         </div>
@@ -77,16 +80,20 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
           <h2 className="font-bold">Skill trends</h2>
           <p className="mt-1 text-sm text-slate-500">From saved evaluations{previous ? `, since ${formatWhen(athlete.assessments[athlete.assessments.length - 2].recordedAt)}` : ""}</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <SkillList title="Strongest" skills={ranked.slice(0, 3)} ratings={latest.skills} previous={previous} />
-            <SkillList title="Weakest" skills={[...ranked.slice(-3)].reverse()} ratings={latest.skills} previous={previous} />
+            {ranked.length === 0 ? <p className="text-sm text-slate-500">No skills are rated yet.</p> : <>
+              <SkillList title="Strongest" skills={ranked.slice(0, 3)} ratings={latest.skills} change={change} />
+              <SkillList title="Weakest" skills={[...ranked.slice(-3)].reverse()} ratings={latest.skills} change={change} />
+            </>}
           </div>
           <ul className="mt-4 space-y-2">
             {SKILL_KEYS.map((key) => {
-              const delta = skillDelta(latest.skills, previous, key);
+              const delta = change(key);
               return (
                 <li key={key} className="flex items-center justify-between text-sm">
                   <span>{SKILL_LABEL[key]}</span>
-                  <span className="font-semibold tabular-nums">{latest.skills[key]} <span className={delta != null && delta < 0 ? "text-rose-600" : "text-slate-500"}>{delta == null ? "· no earlier evaluation" : `${delta > 0 ? "+" : ""}${delta}`}</span></span>
+                  {isRated(latest, key)
+                    ? <span className="font-semibold tabular-nums">{latest.skills[key]} <span className={delta != null && delta < 0 ? "text-rose-600" : "text-slate-500"}>{delta == null ? "· no earlier rating" : `${delta > 0 ? "+" : ""}${delta}`}</span></span>
+                    : <span className="text-slate-500">Not rated</span>}
                 </li>
               );
             })}
@@ -94,8 +101,8 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
         </section>
       </div>
       <div className="mt-6">
-        <button type="button" onClick={run} disabled={loading} className="w-full rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60 sm:w-auto">
-          {loading ? "Analyzing…" : error ? "Try again" : "Analyze My Performance"}
+        <button type="button" onClick={run} disabled={loading || current != null} className="w-full rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60 sm:w-auto">
+          {loading ? "Analyzing…" : current ? "Analysis is up to date" : error ? "Try again" : "Analyze My Performance"}
         </button>
         {loading && <p className="mt-3 text-sm font-medium text-slate-600" role="status">{STEPS[step]}</p>}
         {error && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{error}</p>}
@@ -106,13 +113,13 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
   );
 }
 
-function SkillList({ title, skills, ratings, previous }: { title: string; skills: SkillKey[]; ratings: Athlete["assessments"][number]["skills"]; previous: Athlete["assessments"][number]["skills"] | null }) {
+function SkillList({ title, skills, ratings, change }: { title: string; skills: SkillKey[]; ratings: Athlete["assessments"][number]["skills"]; change: (key: SkillKey) => number | null }) {
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
       <ul className="mt-2 space-y-1">
         {skills.map((key) => {
-          const delta = skillDelta(ratings, previous, key);
+          const delta = change(key);
           return <li key={key} className="text-sm font-semibold">{SKILL_LABEL[key]} · {ratings[key]}{delta == null ? "" : ` (${delta > 0 ? "+" : ""}${delta})`}</li>;
         })}
       </ul>

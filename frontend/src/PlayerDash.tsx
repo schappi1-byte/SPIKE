@@ -1,8 +1,8 @@
-import { adherence, formatWhen, latestAssessment, SKILL_LABEL, trainingPlan, trendDelta, type Athlete } from "./model";
+import { formatWhen, latestAssessment, SKILL_LABEL, trainingPlan, trendDelta, type Athlete } from "./model";
 import { useStore } from "./store";
 import Analyze from "./Analyze";
 import TrainingBoard from "./Training";
-import { Avatar, RadarChart, Shell, SkillBars, SystemPanel, TrendChart, ratingOf } from "./ui";
+import { Avatar, RadarChart, Shell, SystemPanel, ratingOf } from "./ui";
 
 type Section = "overview" | "analyze" | "training" | "system";
 
@@ -46,7 +46,6 @@ function Overview({ athlete }: { athlete: Athlete }) {
   const rating = ratingOf(athlete);
   const delta = trendDelta(athlete);
   const plan = trainingPlan(athlete);
-  const done = plan.filter((item) => item.done).length;
   return (
     <div className="mx-auto max-w-6xl">
       <section className="relative overflow-hidden rounded-3xl bg-navy p-6 text-white sm:p-8">
@@ -61,7 +60,7 @@ function Overview({ athlete }: { athlete: Athlete }) {
           </div>
           <div className="flex gap-7 border-t border-white/10 pt-5 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
             <div>
-              <p className="text-3xl font-bold tabular-nums">{rating}</p>
+              <p className="text-3xl font-bold tabular-nums">{rating ?? "—"}</p>
               <p className="text-xs text-slate-400">Overall rating</p>
             </div>
             <div>
@@ -71,13 +70,13 @@ function Overview({ athlete }: { athlete: Athlete }) {
           </div>
         </div>
       </section>
-      {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")} yet. {athlete.unrated.length === 1 ? "It shows" : "They show"} as 50 until your coach saves an evaluation.</p>}
+      {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")} yet. {athlete.unrated.length === 1 ? "It stays" : "They stay"} unrated until your coach saves an evaluation.</p>}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card p-6">
           <p className="text-sm font-semibold text-brand-ink">How am I performing?</p>
           <h2 className="mt-1 font-bold">Latest skill profile</h2>
           <p className="mt-1 text-sm text-slate-500">Updated {formatWhen(latest.recordedAt)}</p>
-          <div className="mt-5"><RadarChart skills={latest.skills} /></div>
+          <div className="mt-5"><RadarChart skills={latest.skills} unrated={latest.unrated} /></div>
         </section>
         <section className="card p-6">
           <p className="text-sm font-semibold text-brand-ink">What is my coach saying?</p>
@@ -101,8 +100,9 @@ function Overview({ athlete }: { athlete: Athlete }) {
         </section>
         <section className="card p-6">
           <p className="text-sm font-semibold text-brand-ink">What should I work on?</p>
-          <h2 className="mt-1 font-bold">This cycle</h2>
-          <p className="mt-1 text-sm text-slate-500">Built from the three lowest saved ratings. Not an AI recommendation.</p>
+          <h2 className="mt-1 font-bold">Assigned exercises</h2>
+          <p className="mt-1 text-sm text-slate-500">Assigned by your coaching staff.</p>
+          {plan.length === 0 && <p className="mt-5 text-sm text-slate-500">No exercises are assigned to you yet.</p>}
           <ul className="mt-5 space-y-3">
             {plan.map((item) => (
               <li key={item.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-100 px-3 py-3">
@@ -114,13 +114,6 @@ function Overview({ athlete }: { athlete: Athlete }) {
               </li>
             ))}
           </ul>
-        </section>
-        <section className="card p-6">
-          <p className="text-sm font-semibold text-brand-ink">Am I improving?</p>
-          <h2 className="mt-1 font-bold">Rating history and training</h2>
-          <div className="mt-4"><TrendChart athlete={athlete} /></div>
-          <p className="mt-4 text-sm text-slate-600"><span className="font-bold text-navy">{done} of {plan.length}</span> exercises done since {formatWhen(latest.recordedAt)} · {adherence(athlete)}% of this cycle</p>
-          <div className="mt-3"><SkillBars skills={latest.skills} /></div>
         </section>
       </div>
     </div>

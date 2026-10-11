@@ -1,10 +1,9 @@
-import { planTraining } from "@/frontend/server/gemini";
-import { canActFor, dashboardAccount, focusSkill, geminiOptions, geminiPayload, loadAthleteFor } from "@/backend/lib/dashboard";
+import { canActFor, coachResults, dashboardAccount, loadAthleteFor } from "@/backend/lib/dashboard";
 import { adminClient } from "@/backend/lib/supabase";
 
 const PHASES = new Set(["countdown", "exercising", "resting", "paused", "completed"]);
 
-/** Gemini's seven-day plan for a player, saved as a 'week' training plan. */
+/** Gemini's seven-day plan for a player's latest evaluation, saved as a 'week' training plan and reused until it is outdated. */
 export async function POST(request: Request) {
   const account = await dashboardAccount();
   if (account instanceof Response) return account;
@@ -17,25 +16,9 @@ export async function POST(request: Request) {
   const found = await loadAthleteFor(db, account, playerId);
   if (!found) return Response.json({ error: "You can only plan for yourself, or for players on your team as a coach." }, { status: 403 });
 
-  const result = await planTraining({ ...geminiPayload(found.athlete), analysis: found.analysis?.analysis ?? null }, geminiOptions());
-  if (!("plan" in result.body)) return Response.json(result.body, { status: result.status });
-
-  const record = {
-    generatedAt: new Date().toISOString(),
-    sourceRecordedAt: found.athlete.assessments.at(-1)?.recordedAt ?? "",
-    analysisAt: found.analysis?.generatedAt ?? null,
-    plan: result.body.plan,
-    done: Array.from({ length: 7 }, () => []),
-    session: null,
-  };
-  const { data, error } = await db
-    .from("training_plans")
-    .insert({ player_id: playerId, kind: "week", focus_skill: focusSkill(found.athlete), plan: record })
-    .select("plan_id")
-    .single<{ plan_id: number }>();
-  if (error || !data) return Response.json({ error: `The plan was created but not saved: ${error?.message ?? "unknown error"}` }, { status: 500 });
-
-  return Response.json({ plan: { ...record, planId: data.plan_id, athleteId: found.athlete.id } });
+  const result = await coachResults(db, found, "plan");
+  if (result instanceof Response) return result;
+  return Response.json({ plan: result.plan, analysis: result.analysis });
 }
 
 function doneOf(value: unknown): number[][] | null {

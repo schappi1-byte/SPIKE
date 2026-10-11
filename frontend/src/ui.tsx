@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { VOLLEYBALL_PATH } from "./brand";
-import { SKILL_KEYS, SKILL_LABEL, historyPoints, overall, type Athlete, type Skills } from "./model";
+import { SKILL_KEYS, SKILL_LABEL, historyPoints, latestAssessment, rating, type Athlete, type SkillKey, type Skills } from "./model";
 import { useStore } from "./store";
 import { SYSTEM } from "./system";
 
@@ -53,17 +53,17 @@ export function Avatar({ athlete, large = false }: { athlete: Pick<Athlete, "ini
   return <span className={`grid shrink-0 place-items-center rounded-full font-bold text-navy ${large ? "size-16 bg-brand text-xl" : "size-11 bg-brand/15 text-sm"}`}>{athlete.initials}</span>;
 }
 
-export function SkillBars({ skills }: { skills: Skills }) {
+export function SkillBars({ skills, unrated = [] }: { skills: Skills; unrated?: SkillKey[] }) {
   return (
     <div className="space-y-4">
       {SKILL_KEYS.map((key) => (
         <div key={key}>
           <div className="mb-1.5 flex justify-between text-sm">
             <span className="font-medium text-slate-600">{SKILL_LABEL[key]}</span>
-            <span className="font-bold tabular-nums">{skills[key]}</span>
+            <span className="font-bold tabular-nums">{unrated.includes(key) ? "Not rated" : skills[key]}</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full rounded-full bg-brand" style={{ width: `${skills[key]}%` }} />
+            <div className="h-full rounded-full bg-brand" style={{ width: `${unrated.includes(key) ? 0 : skills[key]}%` }} />
           </div>
         </div>
       ))}
@@ -71,7 +71,7 @@ export function SkillBars({ skills }: { skills: Skills }) {
   );
 }
 
-export function RadarChart({ skills }: { skills: Skills }) {
+export function RadarChart({ skills, unrated = [] }: { skills: Skills; unrated?: SkillKey[] }) {
   const cx = 140;
   const cy = 118;
   const radius = 74;
@@ -81,7 +81,7 @@ export function RadarChart({ skills }: { skills: Skills }) {
     const r = (value / 100) * radius;
     return [cx + r * Math.cos(a), cy + r * Math.sin(a)] as const;
   };
-  const polygon = SKILL_KEYS.map((key, index) => at(index, skills[key]).join(",")).join(" ");
+  const polygon = SKILL_KEYS.map((key, index) => at(index, unrated.includes(key) ? 0 : skills[key]).join(",")).join(" ");
   return (
     <figure>
       <svg role="img" aria-label="Skill profile" viewBox="0 0 280 236" className="mx-auto w-full max-w-sm">
@@ -112,7 +112,7 @@ export function RadarChart({ skills }: { skills: Skills }) {
           {SKILL_KEYS.map((key) => (
             <tr key={key} className="border-t border-slate-100">
               <td className="py-1.5">{SKILL_LABEL[key]}</td>
-              <td className="py-1.5 text-right font-semibold tabular-nums">{skills[key]}</td>
+              <td className="py-1.5 text-right font-semibold tabular-nums">{unrated.includes(key) ? "Not rated" : skills[key]}</td>
             </tr>
           ))}
         </tbody>
@@ -123,6 +123,7 @@ export function RadarChart({ skills }: { skills: Skills }) {
 
 export function TrendChart({ athlete }: { athlete: Athlete }) {
   const points = historyPoints(athlete);
+  if (points.length === 0) return <p className="text-sm text-slate-500">No rated evaluations yet.</p>;
   const width = 360;
   const height = 168;
   const pad = 28;
@@ -271,6 +272,6 @@ export function Shell({
   );
 }
 
-export function ratingOf(athlete: Athlete): number {
-  return overall(athlete.assessments[athlete.assessments.length - 1].skills);
+export function ratingOf(athlete: Athlete): number | null {
+  return rating(latestAssessment(athlete));
 }

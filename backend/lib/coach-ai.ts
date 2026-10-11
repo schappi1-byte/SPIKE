@@ -149,7 +149,7 @@ const PLAN_SCHEMA = {
 function gemini(): { ai: GoogleGenAI; model: string } | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
-  return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || "gemini-3.8-flash" };
+  return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || "gemini-3.5-flash" };
 }
 
 /** Easiest drills first, spread over the week. Used when Gemini is unavailable or returns bad ids. */
@@ -192,6 +192,8 @@ export async function generateTrainingPlan(ctx: PlayerContext): Promise<{ plan: 
         responseMimeType: "application/json",
         responseJsonSchema: PLAN_SCHEMA,
         temperature: 0.4,
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
     const parsed = JSON.parse(response.text ?? "") as Omit<TrainingPlan, "focus_skill">;
@@ -230,6 +232,8 @@ export async function answerPlayerQuestion(ctx: PlayerContext, question: string,
           "Answer only from the player data provided and general volleyball technique. " +
           "If the data doesn't contain the answer, say so. Keep the reply under 600 characters, plain text, no markdown.",
         temperature: 0.5,
+        maxOutputTokens: 300,
+        thinkingConfig: { thinkingBudget: 0 },
       },
     });
     return response.text?.trim() || "Sorry, I couldn't come up with an answer. Try asking another way.";

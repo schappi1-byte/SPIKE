@@ -7,10 +7,11 @@ import {
   adherence,
   attentionReason,
   formatWhen,
+  isRated,
   latestAssessment,
   lineupNotes,
   moveOnCourt,
-  overall,
+  rating,
   sameSkills,
   scoreLineup,
   suggestSlots,
@@ -67,8 +68,8 @@ function greeting(): string {
 function Overview({ onOpen }: { onOpen: (id: number) => void }) {
   const { athletes, account, team } = useStore();
   const [query, setQuery] = useState("");
-  const ratings = athletes.map((athlete) => ratingOf(athlete));
-  const average = Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10;
+  const ratings = athletes.map((athlete) => ratingOf(athlete)).filter((value): value is number => value != null);
+  const average = ratings.length ? Math.round((ratings.reduce((sum, value) => sum + value, 0) / ratings.length) * 10) / 10 : null;
   const plans = athletes.map(trainingPlan);
   const assigned = plans.reduce((sum, plan) => sum + plan.length, 0);
   const done = plans.reduce((sum, plan) => sum + plan.filter((item) => item.done).length, 0);
@@ -87,8 +88,8 @@ function Overview({ onOpen }: { onOpen: (id: number) => void }) {
       </div>
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Active athletes" value={String(athletes.length)} note="On this roster" />
-        <Metric label="Squad rating" value={average.toFixed(1)} note="Latest evaluations" />
-        <Metric label="Training completion" value={`${completion}%`} note={`${done}/${assigned} exercises`} />
+        <Metric label="Squad rating" value={average == null ? "—" : average.toFixed(1)} note={`${ratings.length} of ${athletes.length} athletes rated`} />
+        <Metric label="Training completion" value={assigned ? `${completion}%` : "—"} note={`${done}/${assigned} assigned exercises`} />
         <Metric label="Needs attention" value={String(attention.length)} note="Rating, trend, or training" />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
@@ -131,9 +132,9 @@ function Overview({ onOpen }: { onOpen: (id: number) => void }) {
                             </span>
                           </button>
                         </td>
-                        <td className="px-3 py-3 font-bold tabular-nums">{ratingOf(athlete)}</td>
+                        <td className="px-3 py-3 font-bold tabular-nums">{ratingOf(athlete) ?? "—"}</td>
                         <td className={`px-3 py-3 font-semibold tabular-nums ${delta !== null && delta < 0 ? "text-rose-600" : "text-emerald-700"}`}>{delta === null ? "—" : `${delta > 0 ? "+" : ""}${delta}`}</td>
-                        <td className="px-3 py-3 tabular-nums">{adherence(athlete)}%</td>
+                        <td className="px-3 py-3 tabular-nums">{adherence(athlete) == null ? "—" : `${adherence(athlete)}%`}</td>
                         <td className="px-5 py-3 text-xs font-semibold">{reason ? <span className="text-amber-700">{reason}</span> : <span className="text-emerald-700">On track</span>}</td>
                       </tr>
                     );
@@ -145,7 +146,7 @@ function Overview({ onOpen }: { onOpen: (id: number) => void }) {
         </section>
         <section className="card p-5">
           <h2 className="font-bold">Needs a look</h2>
-          <p className="mt-1 text-sm text-slate-500">Athletes under 78, with a decline, or with training still open.</p>
+          <p className="mt-1 text-sm text-slate-500">Athletes with no ratings, under 78, with a decline, or with assigned training still open.</p>
           <div className="mt-4 space-y-2">
             {attention.length === 0 && <p className="text-sm text-slate-500">No athletes are flagged right now.</p>}
             {attention.map((athlete) => (
@@ -239,11 +240,11 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
             </div>
             <button type="button" onClick={onOpenPlayer} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Open athlete view</button>
           </div>
-          {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")}. {athlete.unrated.length === 1 ? "It shows" : "They show"} as 50 until you save an evaluation.</p>}
+          {athlete.unrated && athlete.unrated.length > 0 && <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Season stats could not rate {athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")}. Move a slider to rate it; untouched ones stay unrated.</p>}
           <div className="mt-6 space-y-4">
             {SKILL_KEYS.map((key) => (
               <label key={key} className="block text-sm">
-                <span className="mb-1 flex justify-between font-medium text-slate-600"><span>{SKILL_LABEL[key]}</span><span className="font-bold text-navy tabular-nums">{draft.skills[key]}</span></span>
+                <span className="mb-1 flex justify-between font-medium text-slate-600"><span>{SKILL_LABEL[key]}</span><span className="font-bold text-navy tabular-nums">{!isRated(latest, key) && draft.skills[key] === latest.skills[key] ? "Not rated" : draft.skills[key]}</span></span>
                 <input type="range" min={0} max={100} value={draft.skills[key]} aria-valuetext={`${SKILL_LABEL[key]} ${draft.skills[key]}`} onChange={(event) => updateSkill(key, Number(event.target.value))} className="w-full accent-brand" />
               </label>
             ))}
@@ -261,8 +262,8 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
         <div className="space-y-6">
           <section className="card p-6">
             <h2 className="font-bold">Saved profile</h2>
-            <p className="mt-1 text-sm text-slate-500">Overall {overall(latest.skills)} · this updates after you save</p>
-            <div className="mt-4"><RadarChart skills={latest.skills} /></div>
+            <p className="mt-1 text-sm text-slate-500">Overall {rating(latest) ?? "not rated"} · this updates after you save</p>
+            <div className="mt-4"><RadarChart skills={latest.skills} unrated={latest.unrated} /></div>
           </section>
           <section className="card p-6">
             <h2 className="font-bold">Rating history</h2>
@@ -417,7 +418,7 @@ function LineupBoard() {
                   <div className="absolute bottom-[calc(100%+6px)] z-30 w-36 rounded-xl bg-white p-2.5 text-left shadow-lg" role="dialog" aria-label={popoverAthlete.name} onClick={(event) => event.stopPropagation()}>
                     <p className="text-sm font-bold">{popoverAthlete.name}</p>
                     <p className="text-xs text-slate-500">{popoverAthlete.position}</p>
-                    <p className="mt-1 text-sm font-bold text-brand-ink">{ratingOf(popoverAthlete)} rating</p>
+                    <p className="mt-1 text-sm font-bold text-brand-ink">{ratingOf(popoverAthlete) == null ? "Not rated" : `${ratingOf(popoverAthlete)} rating`}</p>
                     <button type="button" onClick={() => clearSpot(marker.index)} className="mt-2 text-xs font-semibold text-rose-600">To bench</button>
                   </div>
                 )}
@@ -451,7 +452,7 @@ function LineupBoard() {
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-navy">{athlete.number}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{athlete.name}</span>
-                    <span className="block text-xs text-slate-500">{athlete.position} · {ratingOf(athlete)}</span>
+                    <span className="block text-xs text-slate-500">{athlete.position} · {ratingOf(athlete) ?? "not rated"}</span>
                   </span>
                 </button>
               ))}
@@ -483,10 +484,10 @@ function LineupBoard() {
   );
 }
 
-function Score({ label, value, note }: { label: string; value: number; note: string }) {
+function Score({ label, value, note }: { label: string; value: number | null; note: string }) {
   return (
     <div className="flex aspect-square flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-1 text-center">
-      <p className="text-xl font-bold tabular-nums leading-none">{value}</p>
+      <p className="text-xl font-bold tabular-nums leading-none">{value ?? "—"}</p>
       <p className="mt-1 text-[11px] font-semibold leading-tight">{label}</p>
       <p className="text-[10px] leading-tight text-slate-500">{note}</p>
     </div>

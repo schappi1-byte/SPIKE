@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addAssessment, advanceSlots, lineupNotes, markSession, moveOnCourt, overall, scoreLineup, setterSpotIndices, suggestSlots, trainingPlan, trendDelta, withRotation, type Athlete, type Skills } from "./model.ts";
+import { addAssessment, adherence, advanceSlots, attentionReason, lineupNotes, moveOnCourt, rating, scoreLineup, setterSpotIndices, spotFit, suggestSlots, trainingPlan, trendDelta, withRotation, type Athlete, type Skills } from "./model.ts";
 
 const skills: Skills = { serve: 80, pass: 70, set: 60, attack: 90, block: 50, defense: 40 };
 
@@ -29,18 +29,30 @@ function athlete(extra?: Partial<Athlete>): Athlete {
   };
 }
 
-test("overall is the rounded mean of the six skills", () => {
-  assert.equal(overall(skills), 65);
+test("rating is the rounded mean of the rated skills", () => {
+  assert.equal(rating(athlete().assessments[0]), 65);
+  assert.equal(rating({ ...athlete().assessments[0], unrated: ["serve", "attack"] }), 55);
+  assert.equal(rating({ ...athlete().assessments[0], unrated: ["serve", "pass", "set", "attack", "block", "defense"] }), null);
 });
 
-test("training plan uses the three lowest skills and ignores an older session", () => {
-  const plan = trainingPlan(athlete());
-  assert.deepEqual(plan.map((item) => item.skill), ["defense", "block", "set"]);
-  const done = markSession(athlete(), plan[0], "2026-05-26T18:00:00.000Z");
-  assert.equal(trainingPlan(done)[0].done, true);
-  const next = addAssessment(done, { skills: { ...skills, defense: 95 }, strengths: "Attack", weaknesses: "Block", priorities: "Close the block" }, "2026-05-28T16:00:00.000Z");
-  assert.equal(trainingPlan(next).some((item) => item.skill === "defense"), false);
-  assert.equal(trendDelta(next), overall(next.assessments[1].skills) - overall(skills));
+test("an athlete with no ratings has no trend and is flagged, not scored", () => {
+  const unrated = athlete({ assessments: [{ ...athlete().assessments[0], unrated: ["serve", "pass", "set", "attack", "block", "defense"] }] });
+  assert.equal(attentionReason(unrated), "No ratings yet");
+  assert.equal(spotFit(unrated, ["attack", "block"]), null);
+  const next = addAssessment(unrated, { skills, strengths: "A", weaknesses: "B", priorities: "C" }, "2026-05-28T16:00:00.000Z");
+  assert.equal(trendDelta(next), null);
+});
+
+test("training plan is the assigned exercises", () => {
+  assert.deepEqual(trainingPlan(athlete()), []);
+  assert.equal(adherence(athlete()), null);
+  const assignments = [
+    { id: "ex-001:2026-09-15", skill: "pass" as const, title: "Wall Passing", detail: "", minutes: 10, done: true },
+    { id: "ex-004:2026-09-29", skill: "serve" as const, title: "Target Serving", detail: "", minutes: 15, done: false },
+  ];
+  assert.equal(adherence(athlete({ assignments })), 50);
+  const next = addAssessment(athlete(), { skills: { ...skills, defense: 95 }, strengths: "Attack", weaknesses: "Block", priorities: "Close the block" }, "2026-05-28T16:00:00.000Z");
+  assert.equal(trendDelta(next), rating(next.assessments[1]!)! - 65);
 });
 
 test("an unchanged evaluation does not add a record", () => {
@@ -66,6 +78,8 @@ test("lineup scores average the skills each spot asks for", () => {
   assert.equal(scored.overall, 64);
   assert.equal(scored.best.score, 64);
   assert.equal(scored.weakest.score, 64);
+  const partly = roster.map((item) => ({ ...item, assessments: [{ ...item.assessments[0], unrated: ["attack" as const] }] }));
+  assert.equal(scoreLineup([1, 2, 3, 4, 5, 6], 1, partly).front, 55);
 });
 
 test("court moves swap occupants and 4-2 setters stay opposite", () => {

@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Account, Position, RosterPlayer, Skill } from "../../lib/types";
-import { SKILL_KEYS, SKILL_LABEL, type Assessment, type Athlete, type Formation, type Lineup, type Session, type SkillKey, type Skills } from "../../frontend/src/model";
-import { payloadFrom, readAnalysis, type PlayerAnalysis, type PlayerPayload } from "../../frontend/src/analysis";
-import { readTrainingPlan, type SavedPlan, type WeekPlan } from "../../frontend/src/trainingPlan";
+import { SKILL_KEYS, isRated, type Assessment, type Athlete, type Exercise, type Formation, type Lineup, type Session, type SkillKey, type Skills } from "../../frontend/src/model";
+import { coachPlayer } from "../../frontend/server/gemini";
+import { currentAnalysis, payloadFrom, readAnalysis, type PlayerAnalysis } from "../../frontend/src/analysis";
+import { planIsCurrent, readTrainingPlan, type SavedPlan, type WeekPlan } from "../../frontend/src/trainingPlan";
 import { getAccount } from "./auth";
 import { getRoster, getTeam, getTeamMatches } from "./data";
 import { isSupabaseConfigured } from "./supabase";
@@ -79,8 +80,10 @@ interface LineupRow {
 interface ProgressRow {
   player_id: string;
   exercise_id: string;
-  completion_date: string;
-  exercises: { name: string; target_skill: Skill; duration_minutes: number } | null;
+  assigned_date: string;
+  completed: boolean;
+  completion_date: string | null;
+  exercises: { name: string; target_skill: Skill; duration_minutes: number; instructions: string } | null;
 }
 
 /** The signed-in account, or an error response. */
@@ -135,6 +138,7 @@ function baseline(player: RosterPlayer, recordedAt: string): { assessment: Asses
       strengths: feedback?.strengths ?? "",
       weaknesses: feedback?.weaknesses ?? "",
       priorities: feedback?.improvement_goals ?? "",
+      unrated,
     },
     unrated,
   };
@@ -148,6 +152,7 @@ function fromRow(row: EvaluationRow): Assessment {
     strengths: row.strengths,
     weaknesses: row.weaknesses,
     priorities: row.priorities,
+    unrated: row.unrated as SkillKey[],
   };
 }
 
@@ -197,9 +202,9 @@ export async function loadDashboard(db: SupabaseClient, account: Account): Promi
     visibleIds.length
       ? db
           .from("training_progress")
-          .select("player_id, exercise_id, completion_date, exercises(name, target_skill, duration_minutes)")
-          .eq("completed", true)
+          .select("player_id, exercise_id, assigned_date, completed, completion_date, exercises(name, target_skill, duration_minutes, instructions)")
           .in("player_id", visibleIds)
+          .order("assigned_date")
           .then((r) => unwrap<ProgressRow[]>(r))
       : [],
     account.role === "coach"
@@ -225,8 +230,17 @@ export async function loadDashboard(db: SupabaseClient, account: Account): Promi
     const plan = planRow ? storedPlan(planRow, id) : null;
     if (plan) storedPlans[id] = plan;
 
-    const sessions: Session[] = progress
-      .filter((row) => row.player_id === player.player_id && row.exercises)
+    const assigned = progress.filter((row) => row.player_id === player.player_id && row.exercises);
+    const assignments: Exercise[] = assigned.map((row) => ({
+      id: `${row.exercise_id}:${row.assigned_date}`,
+      skill: skillFromColumn(row.exercises!.target_skill),
+      title: row.exercises!.name,
+      detail: row.exercises!.instructions,
+      minutes: row.exercises!.duration_minutes,
+      done: row.completed,
+    }));
+    const sessions: Session[] = assigned
+      .filter((row) => row.completed && row.completion_date)
       .map((row) => ({
         id: `progress-${row.player_id}-${row.exercise_id}-${row.completion_date}`,
         exerciseId: `${skillFromColumn(row.exercises!.target_skill)}:${row.exercise_id}`,
@@ -249,6 +263,7 @@ export async function loadDashboard(db: SupabaseClient, account: Account): Promi
       assessments,
       sessions,
       unrated,
+      assignments,
     };
   });
 
@@ -276,17 +291,6 @@ export async function loadAthleteFor(db: SupabaseClient, account: Account, playe
   const athlete = state.athletes.find((item) => item.playerId === playerId) ?? null;
   if (!athlete) return null;
   return { state, athlete, analysis: state.analyses[athlete.id] ?? null, plan: state.plans[athlete.id] ?? null };
-}
-
-/** The Gemini request, built from saved records. Unrated skills are named so Gemini does not treat the placeholder as a score. */
-export function geminiPayload(athlete: Athlete): PlayerPayload {
-  const payload = payloadFrom(athlete);
-  const latest = payload.evaluations.at(-1);
-  if (latest && athlete.unrated?.length) {
-    const note = `Not rated from season stats yet (shown as ${UNRATED_VALUE}; ignore these scores): ${athlete.unrated.map((key) => SKILL_LABEL[key]).join(", ")}.`;
-    latest.weaknesses = `${latest.weaknesses} ${note}`.trim().slice(0, 1000);
-  }
-  return payload;
 }
 
 /**
@@ -318,7 +322,7 @@ export async function latestEvaluationId(db: SupabaseClient, athlete: Athlete): 
 export function focusSkill(athlete: Athlete): Skill {
   const latest = athlete.assessments.at(-1);
   if (!latest) return "serving";
-  const rated = SKILL_KEYS.filter((key) => !athlete.unrated?.includes(key));
+  const rated = SKILL_KEYS.filter((key) => isRated(latest, key));
   const keys = rated.length ? rated : [...SKILL_KEYS];
   const lowest = [...keys].sort((a, b) => latest.skills[a] - latest.skills[b])[0] ?? "serve";
   return SKILL_COLUMN[lowest];
@@ -326,6 +330,56 @@ export function focusSkill(athlete: Athlete): Skill {
 
 export function geminiOptions() {
   return { apiKey: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL };
+}
+
+const DAILY_GEMINI_LIMIT = 4;
+
+/** Gemini requests for this player in the last 24 hours. A combined request saves both results with one timestamp. */
+async function geminiCallsToday(db: SupabaseClient, playerId: string): Promise<number> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const [analysed, planned] = await Promise.all([
+    db.from("evaluations").select("analysis_at").eq("player_id", playerId).gte("analysis_at", since).then((r) => unwrap<{ analysis_at: string }[]>(r)),
+    db.from("training_plans").select("plan").eq("player_id", playerId).eq("kind", "week").gte("created_at", since).then((r) => unwrap<{ plan: { generatedAt?: unknown } }[]>(r)),
+  ]);
+  const stamps = [...analysed.map((row) => row.analysis_at), ...planned.map((row) => String(row.plan.generatedAt))];
+  return new Set(stamps.map((stamp) => new Date(stamp).getTime())).size;
+}
+
+/**
+ * The athlete's analysis and week plan for their latest evaluation. Saved results are reused; otherwise one
+ * Gemini request makes whatever is missing. A new analysis always comes with a matching week plan.
+ */
+export async function coachResults(db: SupabaseClient, found: NonNullable<Awaited<ReturnType<typeof loadAthleteFor>>>, need: "analysis" | "plan"): Promise<Response | { analysis: StoredAnalysis | null; plan: StoredPlan | null }> {
+  const { athlete } = found;
+  const latest = athlete.assessments.at(-1);
+  if (!latest || !athlete.playerId) return Response.json({ error: "This player has no evaluation yet." }, { status: 400 });
+  const analysis = currentAnalysis(athlete, found.analysis);
+  const plan = found.plan && planIsCurrent(athlete, found.plan, found.analysis) ? found.plan : null;
+  if (need === "analysis" ? analysis : plan) return { analysis, plan };
+
+  if ((await geminiCallsToday(db, athlete.playerId)) >= DAILY_GEMINI_LIMIT) {
+    return Response.json({ error: `This player has used today's ${DAILY_GEMINI_LIMIT} Gemini requests. Saved results are still shown; try again tomorrow.` }, { status: 429 });
+  }
+  const want = { analysis: need === "analysis" || !analysis, plan: true };
+  const result = await coachPlayer({ ...payloadFrom(athlete), analysis: want.analysis ? null : analysis?.analysis ?? null }, want, geminiOptions());
+  if ("error" in result.body) return Response.json(result.body, { status: result.status });
+
+  const generatedAt = new Date().toISOString();
+  let saved = analysis;
+  if (result.body.analysis) {
+    const evaluationId = await latestEvaluationId(db, athlete).catch((caught: Error) => caught);
+    const { error } = evaluationId instanceof Error ? { error: evaluationId } : await db.from("evaluations").update({ analysis: result.body.analysis, analysis_at: generatedAt }).eq("evaluation_id", evaluationId);
+    if (error) return Response.json({ error: `The analysis was created but not saved: ${error.message}` }, { status: 500 });
+    saved = { athleteId: athlete.id, sourceRecordedAt: latest.recordedAt, generatedAt, analysis: result.body.analysis };
+  }
+  const record = { generatedAt, sourceRecordedAt: latest.recordedAt, analysisAt: saved?.generatedAt ?? null, plan: result.body.plan!, done: Array.from({ length: 7 }, () => []), session: null };
+  const { data, error } = await db
+    .from("training_plans")
+    .insert({ player_id: athlete.playerId, kind: "week", focus_skill: focusSkill(athlete), plan: record })
+    .select("plan_id")
+    .single<{ plan_id: number }>();
+  if (error || !data) return Response.json({ error: `The plan was created but not saved: ${error?.message ?? "unknown error"}` }, { status: 500 });
+  return { analysis: saved, plan: { ...record, planId: data.plan_id, athleteId: athlete.id } };
 }
 
 export type { WeekPlan };

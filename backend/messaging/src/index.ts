@@ -110,6 +110,26 @@ async function postToCoachChat(contact: Contact, body: string) {
   if (error) throw new Error(error.message);
 }
 
+const DAILY_AI_ANSWERS = 5;
+const aiAnswers = new Map<string, number[]>();
+
+/** Counts an AI answer for the player, or returns false once today's limit is used. */
+function takeAiAnswer(playerId: string): boolean {
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const recent = (aiAnswers.get(playerId) ?? []).filter((time) => time > since);
+  if (recent.length >= DAILY_AI_ANSWERS) return false;
+  aiAnswers.set(playerId, [...recent, Date.now()]);
+  return true;
+}
+
+/** Questions the saved data already answers, so they don't need Gemini. */
+async function fixedAnswer(contact: Contact, question: string): Promise<string | null> {
+  if (/\b(rotation|court position|where do i play)\b/i.test(question)) return rotationText(contact);
+  if (/\b(training plan|workout plan|my plan)\b/i.test(question)) return planText(contact);
+  if (/\bdrills?\b/i.test(question)) return (await drillsText(contact)) ?? "You've finished every assigned drill.";
+  return null;
+}
+
 // Incoming texts: commands first, ASK goes to the coaching assistant, everything else to the coach chat.
 async function handleInbound() {
   for await (const [space, message] of im.messages) {
@@ -149,6 +169,15 @@ async function handleInbound() {
         const question = textBody.slice(3).trim();
         if (!question) {
           await space.send("Text ASK and then your question, like: ASK how do I pass a float serve?");
+          continue;
+        }
+        const fixed = await fixedAnswer(contact, question);
+        if (fixed) {
+          await space.send(fixed);
+          continue;
+        }
+        if (!takeAiAnswer(contact.player_id)) {
+          await space.send(`You've used today's ${DAILY_AI_ANSWERS} coaching assistant answers. Text PLAN, DRILLS, or ROTATION anytime, or message your coach.`);
           continue;
         }
         const ctx = await loadPlayerContext(db, contact.player_id);

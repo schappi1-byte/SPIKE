@@ -20,6 +20,8 @@ export type Assessment = {
   strengths: string;
   weaknesses: string;
   priorities: string;
+  /** Skills with no rating in the data. Their stored value is a placeholder and is left out of every score. */
+  unrated?: SkillKey[];
 };
 
 export type Session = {
@@ -42,8 +44,10 @@ export type Athlete = {
   assessments: Assessment[];
   sessions: Session[];
   playerId?: string;
-  /** Skills the season stats could not rate. They show as 50 until a coach saves an evaluation. */
+  /** Skills the season stats could not rate, until a coach saves an evaluation. */
   unrated?: SkillKey[];
+  /** Exercises the coaching staff assigned (training_progress). */
+  assignments?: Exercise[];
 };
 
 export type Formation = "4-2" | "5-1" | "6-2";
@@ -100,22 +104,19 @@ const ROLE_SKILL: Record<string, SkillKey> = {
   Middle: "block",
 };
 
-const DRILLS: Record<SkillKey, { title: string; detail: string; minutes: number }> = {
-  serve: { title: "Zone targets", detail: "Land 40 serves inside the assigned zone.", minutes: 12 },
-  pass: { title: "Platform control", detail: "Pass 30 balls to the target cone.", minutes: 10 },
-  set: { title: "Tempo sets", detail: "Deliver 24 sets to the same release point.", minutes: 10 },
-  attack: { title: "High contact", detail: "Hit 20 balls with a full reach at contact.", minutes: 12 },
-  block: { title: "Close the block", detail: "Finish 16 block steps before the hitter jumps.", minutes: 8 },
-  defense: { title: "Read and dig", detail: "Dig 20 balls from a live or tossed attack.", minutes: 10 },
-};
-
 export function clampSkill(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-export function overall(skills: Skills): number {
-  const total = SKILL_KEYS.reduce((sum, key) => sum + skills[key], 0);
-  return Math.round(total / SKILL_KEYS.length);
+export function isRated(assessment: Pick<Assessment, "unrated">, key: SkillKey): boolean {
+  return !assessment.unrated?.includes(key);
+}
+
+/** Mean of the rated skills, or null when none are rated. */
+export function rating(assessment: Pick<Assessment, "skills" | "unrated">): number | null {
+  const keys = SKILL_KEYS.filter((key) => isRated(assessment, key));
+  if (keys.length === 0) return null;
+  return Math.round(keys.reduce((sum, key) => sum + assessment.skills[key], 0) / keys.length);
 }
 
 export function latestAssessment(athlete: Athlete): Assessment {
@@ -124,34 +125,30 @@ export function latestAssessment(athlete: Athlete): Assessment {
 
 export function trendDelta(athlete: Athlete): number | null {
   if (athlete.assessments.length < 2) return null;
-  const current = overall(latestAssessment(athlete).skills);
-  const previous = overall(athlete.assessments[athlete.assessments.length - 2]!.skills);
-  return current - previous;
+  const current = rating(latestAssessment(athlete));
+  const previous = rating(athlete.assessments[athlete.assessments.length - 2]!);
+  return current == null || previous == null ? null : current - previous;
 }
 
 export function trainingPlan(athlete: Athlete): Exercise[] {
-  const current = latestAssessment(athlete);
-  const focus = [...SKILL_KEYS].sort((a, b) => current.skills[a] - current.skills[b] || a.localeCompare(b)).slice(0, 3);
-  return focus.map((skill) => {
-    const drill = DRILLS[skill];
-    const id = `${skill}:${drill.title}`;
-    const done = athlete.sessions.some((session) => session.exerciseId.split(":")[0] === skill && session.completedAt >= current.recordedAt);
-    return { id, skill, ...drill, done };
-  });
+  return athlete.assignments ?? [];
 }
 
-export function adherence(athlete: Athlete): number {
+/** Share of assigned exercises completed, or null when nothing is assigned. */
+export function adherence(athlete: Athlete): number | null {
   const plan = trainingPlan(athlete);
-  if (plan.length === 0) return 0;
+  if (plan.length === 0) return null;
   return Math.round((plan.filter((item) => item.done).length / plan.length) * 100);
 }
 
 export function attentionReason(athlete: Athlete): string | null {
-  const rating = overall(latestAssessment(athlete).skills);
+  const value = rating(latestAssessment(athlete));
   const delta = trendDelta(athlete);
-  if (rating < 78) return "Rating below 78";
+  const progress = adherence(athlete);
+  if (value == null) return "No ratings yet";
+  if (value < 78) return "Rating below 78";
   if (delta !== null && delta < 0) return "Rating declined since last evaluation";
-  if (adherence(athlete) < 34) return "Training not started this cycle";
+  if (progress !== null && progress < 34) return "Assigned training not started";
   return null;
 }
 
@@ -171,25 +168,6 @@ export function addAssessment(athlete: Athlete, input: Omit<Assessment, "id" | "
     assessments: [
       ...athlete.assessments,
       { id: `assessment-${athlete.id}-${now}`, recordedAt: now, skills: { ...input.skills }, strengths, weaknesses, priorities },
-    ],
-  };
-}
-
-export function markSession(athlete: Athlete, exercise: Exercise, now = new Date().toISOString()): Athlete {
-  const current = latestAssessment(athlete);
-  const already = athlete.sessions.some((session) => session.exerciseId === exercise.id && session.completedAt >= current.recordedAt);
-  if (already) return athlete;
-  return {
-    ...athlete,
-    sessions: [
-      ...athlete.sessions,
-      {
-        id: `session-${athlete.id}-${now}`,
-        exerciseId: exercise.id,
-        title: exercise.title,
-        minutes: exercise.minutes,
-        completedAt: now,
-      },
     ],
   };
 }
@@ -235,34 +213,37 @@ export function moveOnCourt(slots: (number | null)[], slotIndex: number, athlete
   return placeAthlete(slots, slotIndex, athleteId);
 }
 
-export function spotFit(athlete: Athlete | undefined, skills: readonly SkillKey[]): number {
+/** Mean of the spot's skills the athlete has ratings for; an empty spot is 0, an athlete with none rated is null. */
+export function spotFit(athlete: Athlete | undefined, skills: readonly SkillKey[]): number | null {
   if (!athlete) return 0;
-  const ratings = latestAssessment(athlete).skills;
-  const total = skills.reduce((sum, key) => sum + ratings[key], 0);
-  return Math.round(total / skills.length);
+  const latest = latestAssessment(athlete);
+  const rated = skills.filter((key) => isRated(latest, key));
+  if (rated.length === 0) return null;
+  return Math.round(rated.reduce((sum, key) => sum + latest.skills[key], 0) / rated.length);
 }
 
-function average(values: number[]): number {
-  if (values.length === 0) return 0;
-  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+function average(values: (number | null)[]): number | null {
+  const known = values.filter((value): value is number => value != null);
+  if (known.length === 0) return null;
+  return Math.round(known.reduce((sum, value) => sum + value, 0) / known.length);
 }
 
-export type RotationScore = { rotation: number; score: number; front: number; back: number; fits: number[] };
+export type RotationScore = { rotation: number; score: number | null; front: number | null; back: number | null; fits: (number | null)[] };
 
-export function scoreArrangement(slots: (number | null)[], athletes: Athlete[]): { fits: number[]; current: number; front: number; back: number } {
+export function scoreArrangement(slots: (number | null)[], athletes: Athlete[]): { fits: (number | null)[]; current: number | null; front: number | null; back: number | null } {
   const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
   const fits = COURT_SPOTS.map((spot) => spotFit(slots[spot.index] != null ? byId.get(slots[spot.index] as number) : undefined, spot.skills));
   return { fits, current: average(fits), front: average(fits.slice(0, 3)), back: average(fits.slice(3)) };
 }
 
-export function scoreLineup(slots: (number | null)[], rotation: number, athletes: Athlete[]): { current: number; front: number; back: number; overall: number; best: RotationScore; weakest: RotationScore; rotations: RotationScore[] } {
+export function scoreLineup(slots: (number | null)[], rotation: number, athletes: Athlete[]): { current: number | null; front: number | null; back: number | null; overall: number | null; best: RotationScore; weakest: RotationScore; rotations: RotationScore[] } {
   const rotations = [1, 2, 3, 4, 5, 6].map((next) => {
     const scored = scoreArrangement(advanceSlots(slots, next - rotation), athletes);
     return { rotation: next, score: scored.current, front: scored.front, back: scored.back, fits: scored.fits };
   });
   const current = rotations.find((item) => item.rotation === rotation) ?? rotations[0]!;
-  const best = rotations.reduce((lead, item) => (item.score > lead.score ? item : lead));
-  const weakest = rotations.reduce((lead, item) => (item.score < lead.score ? item : lead));
+  const best = rotations.reduce((lead, item) => ((item.score ?? -1) > (lead.score ?? -1) ? item : lead));
+  const weakest = rotations.reduce((lead, item) => ((item.score ?? 101) < (lead.score ?? 101) ? item : lead));
   return { current: current.score, front: current.front, back: current.back, overall: average(rotations.map((item) => item.score)), best, weakest, rotations };
 }
 
@@ -285,13 +266,17 @@ export function lineupNotes(slots: (number | null)[], formation: Formation, rota
     if (invalid) notes.push("Invalid setter for 4-2");
   }
   const scored = scoreArrangement(slots, athletes);
-  const low = COURT_SPOTS.filter((spot, index) => slots[spot.index] != null && (scored.fits[index] ?? 0) < 70).map((spot) => spot.number);
+  const low = COURT_SPOTS.filter((spot, index) => slots[spot.index] != null && (scored.fits[index] ?? 100) < 70).map((spot) => spot.number);
   if (low.length) notes.push(`Low fit in position ${low.join(", ")}`);
   const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
   const skillAt = (indexes: number[], skill: SkillKey) => {
-    const values = indexes.map((index) => (slots[index] != null ? latestAssessment(byId.get(slots[index] as number)!).skills[skill] : null));
+    const values = indexes.map((index) => {
+      const athlete = slots[index] != null ? byId.get(slots[index] as number) : undefined;
+      const latest = athlete ? latestAssessment(athlete) : null;
+      return latest && isRated(latest, skill) ? latest.skills[skill] : null;
+    });
     if (values.some((value) => value == null)) return null;
-    return average(values as number[]);
+    return average(values);
   };
   const frontAttack = skillAt([0, 1, 2], "attack");
   const backDefense = skillAt([3, 4, 5], "defense");
@@ -316,17 +301,17 @@ export function suggestSlots(athletes: Athlete[], formation: Formation, rotation
 }
 
 function roleScore(athlete: Athlete, role: string, skill: SkillKey): number {
-  const rating = latestAssessment(athlete).skills[skill];
+  const latest = latestAssessment(athlete);
+  const value = isRated(latest, skill) ? latest.skills[skill] : 0;
   const bonus = athlete.position.toLowerCase().includes(role.toLowerCase()) ? 10 : 0;
-  return rating + bonus;
+  return value + bonus;
 }
 
 export function historyPoints(athlete: Athlete): { label: string; value: number; at: string }[] {
-  return athlete.assessments.map((assessment) => ({
-    at: assessment.recordedAt,
-    label: formatWhen(assessment.recordedAt),
-    value: overall(assessment.skills),
-  }));
+  return athlete.assessments.flatMap((assessment) => {
+    const value = rating(assessment);
+    return value == null ? [] : [{ at: assessment.recordedAt, label: formatWhen(assessment.recordedAt), value }];
+  });
 }
 
 /** Timestamps from the database and the browser can differ in format for the same moment. */

@@ -1,11 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { formatClock, formatWhen, latestAssessment, sameTime, type Athlete } from "./model";
+import { currentAnalysis } from "./analysis";
+import { formatClock, formatWhen, type Athlete } from "./model";
 import { useStore } from "./store";
 
 const Trainer = lazy(() => import("./Trainer"));
 import {
   exerciseSeconds,
   finishEffort,
+  planIsCurrent,
   progressKey,
   requestTrainingPlan,
   savePlan,
@@ -22,8 +24,7 @@ import {
 const PHASES = { warmup: "Warm-up", work: "Work", cooldown: "Cool-down" };
 
 export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
-  const latest = latestAssessment(athlete);
-  const { analyses, plans, setPlan } = useStore();
+  const { analyses, plans, setPlan, refresh } = useStore();
   const analysis = analyses[athlete.id] ?? null;
   const server = plans[athlete.id] ?? null;
   const [saved, setSaved] = useState<SavedPlan | null>(() => (server ? withLocalProgress(server) : null));
@@ -70,6 +71,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
       savePlan(plan);
       setPlan(athlete.id, plan);
       setSaved(plan);
+      await refresh();
     } catch (caught) {
       if (request.current !== ticket) return;
       setError(caught instanceof Error ? caught.message : "Gemini could not build a training plan.");
@@ -85,14 +87,14 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
         <section className="card mt-4 overflow-hidden">
           <TrainerFrame move="rest" paused={false} />
         </section>
-        <p className="mt-3 text-sm leading-6 text-slate-500">{analysis ? "A Gemini analysis is saved and will be sent with your ratings and coach notes." : "No Gemini analysis is saved yet. The plan will use your ratings, history, and coach feedback."}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">{currentAnalysis(athlete, analysis) ? "A Gemini analysis is saved and will be sent with your ratings and coach notes." : "One Gemini request will create your analysis and your week from your ratings, history, and coach feedback."}</p>
         <button type="button" onClick={generate} disabled={loading} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60">{loading ? "Building your week…" : "Create my week"}</button>
         {error && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{error}</p>}
       </div>
     );
   }
 
-  const stale = !sameTime(saved.sourceRecordedAt, latest.recordedAt) || (analysis != null && !sameTime(saved.analysisAt ?? "", analysis.generatedAt));
+  const stale = !planIsCurrent(athlete, saved, analysis);
   if (saved.session) {
     return (
       <>
@@ -146,7 +148,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
           ))}
         </ol>
         <button type="button" onClick={() => update({ ...saved, session: { ...startSession(day), exercise: Math.max(0, selected.exercises.findIndex((_, index) => !finished.includes(index))) } })} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-navy">Start training</button>
-        <button type="button" onClick={generate} disabled={loading} className="mx-2 mt-2 text-sm font-semibold text-slate-500">{loading ? "Building your week…" : "Create a new week"}</button>
+        <button type="button" onClick={generate} disabled={loading || !stale} className="mx-2 mt-2 text-sm font-semibold text-slate-500">{loading ? "Building your week…" : stale ? "Create a new week" : "Week is up to date"}</button>
         {error && <p className="mx-2 mt-3 text-sm text-amber-800" role="alert">{error}</p>}
       </section>
     </div>

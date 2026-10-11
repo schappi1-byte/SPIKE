@@ -1,5 +1,5 @@
-import type { PlayerAnalysis } from "./analysis.ts";
-import type { Athlete } from "./model.ts";
+import { currentAnalysis, type PlayerAnalysis, type SavedAnalysis } from "./analysis.ts";
+import { sameTime, type Athlete } from "./model.ts";
 
 export const ANIMATIONS = ["squat", "lunge", "calf-raise", "squat-jump", "shuffle", "arm-raise"] as const;
 export type AnimationId = (typeof ANIMATIONS)[number] | "none";
@@ -165,6 +165,12 @@ export function finishEffort(session: Session, exercise: PlanExercise): { sessio
   };
 }
 
+/** Whether the plan was built from the latest evaluation and from the analysis that is current now. */
+export function planIsCurrent(athlete: Athlete, plan: SavedPlan, analysis: SavedAnalysis | null): boolean {
+  const latest = athlete.assessments.at(-1);
+  return !!latest && sameTime(plan.sourceRecordedAt, latest.recordedAt) && sameTime(plan.analysisAt ?? "", currentAnalysis(athlete, analysis)?.generatedAt ?? "");
+}
+
 /** Asks the server for a Gemini week plan. The server builds it from saved records and saves it. */
 export async function requestTrainingPlan(athlete: Athlete): Promise<SavedPlan & { planId: number }> {
   let response: Response;
@@ -199,8 +205,8 @@ export async function requestTrainingPlan(athlete: Athlete): Promise<SavedPlan &
     sourceRecordedAt: saved.sourceRecordedAt,
     analysisAt: typeof saved.analysisAt === "string" ? saved.analysisAt : null,
     plan,
-    done: blankDone(),
-    session: null,
+    done: Array.isArray(saved.done) ? (saved.done as number[][]) : blankDone(),
+    session: (saved.session ?? null) as Session | null,
   };
 }
 
