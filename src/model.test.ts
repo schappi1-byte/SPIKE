@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { addAssessment, advanceSlots, markSession, overall, suggestSlots, trainingPlan, trendDelta, withRotation, type Athlete, type Skills } from "./model.ts";
+import { addAssessment, advanceSlots, lineupNotes, markSession, moveOnCourt, overall, scoreLineup, setterSpotIndices, suggestSlots, trainingPlan, trendDelta, withRotation, type Athlete, type Skills } from "./model.ts";
 
 const skills: Skills = { serve: 80, pass: 70, set: 60, attack: 90, block: 50, defense: 40 };
 
@@ -55,6 +55,26 @@ test("suggest placement assigns six different athletes", () => {
   const slots = suggestSlots(roster, "5-1");
   assert.equal(slots.length, 6);
   assert.equal(new Set(slots).size, 6);
+});
+
+test("lineup scores average the skills each spot asks for", () => {
+  const roster = [1, 2, 3, 4, 5, 6].map((id) => athlete({ id, name: `Player ${id}` }));
+  const scored = scoreLineup([1, 2, 3, 4, 5, 6], 1, roster);
+  assert.equal(scored.current, 64);
+  assert.equal(scored.front, 69);
+  assert.equal(scored.back, 59);
+  assert.equal(scored.overall, 64);
+  assert.equal(scored.best.score, 64);
+  assert.equal(scored.weakest.score, 64);
+});
+
+test("court moves swap occupants and 4-2 setters stay opposite", () => {
+  assert.deepEqual(moveOnCourt([1, 2, null, null, null, null], 1, 1), [2, 1, null, null, null, null]);
+  assert.deepEqual(setterSpotIndices("4-2", 1), [0, 5]);
+  assert.deepEqual(setterSpotIndices("4-2", 2), [1, 4]);
+  const notes = lineupNotes([1, null, null, null, null, null], "4-2", 1, [athlete()]);
+  assert.equal(notes.includes("Missing player"), true);
+  assert.equal(notes.includes("Invalid setter for 4-2"), true);
 });
 
 test("rotation moves the server from position 1 to position 6", () => {

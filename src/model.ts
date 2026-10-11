@@ -81,6 +81,15 @@ const COURT_ROLES: Record<Formation, string[]> = {
 
 const NEXT_SLOT = [1, 2, 5, 0, 3, 4];
 
+export const COURT_SPOTS: { index: number; number: string; row: "front" | "back"; skills: readonly SkillKey[] }[] = [
+  { index: 0, number: "4", row: "front", skills: ["attack", "pass", "block"] },
+  { index: 1, number: "3", row: "front", skills: ["block", "attack"] },
+  { index: 2, number: "2", row: "front", skills: ["attack", "set", "block"] },
+  { index: 3, number: "5", row: "back", skills: ["pass", "defense", "serve"] },
+  { index: 4, number: "6", row: "back", skills: ["defense", "pass"] },
+  { index: 5, number: "1", row: "back", skills: ["serve", "defense", "set"] },
+];
+
 const ROLE_SKILL: Record<string, SkillKey> = {
   Setter: "set",
   Outside: "attack",
@@ -210,9 +219,87 @@ export function placeAthlete(slots: (number | null)[], slotIndex: number, athlet
   return cleared;
 }
 
-export function suggestSlots(athletes: Athlete[], formation: Formation): (number | null)[] {
+export function moveOnCourt(slots: (number | null)[], slotIndex: number, athleteId: number): (number | null)[] {
+  const from = slots.indexOf(athleteId);
+  if (from === slotIndex) return slots;
+  const occupant = slots[slotIndex];
+  if (from >= 0 && occupant != null) {
+    const next = [...slots];
+    next[from] = occupant;
+    next[slotIndex] = athleteId;
+    return next;
+  }
+  return placeAthlete(slots, slotIndex, athleteId);
+}
+
+export function spotFit(athlete: Athlete | undefined, skills: readonly SkillKey[]): number {
+  if (!athlete) return 0;
+  const ratings = latestAssessment(athlete).skills;
+  const total = skills.reduce((sum, key) => sum + ratings[key], 0);
+  return Math.round(total / skills.length);
+}
+
+function average(values: number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+export type RotationScore = { rotation: number; score: number; front: number; back: number; fits: number[] };
+
+export function scoreArrangement(slots: (number | null)[], athletes: Athlete[]): { fits: number[]; current: number; front: number; back: number } {
+  const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
+  const fits = COURT_SPOTS.map((spot) => spotFit(slots[spot.index] != null ? byId.get(slots[spot.index] as number) : undefined, spot.skills));
+  return { fits, current: average(fits), front: average(fits.slice(0, 3)), back: average(fits.slice(3)) };
+}
+
+export function scoreLineup(slots: (number | null)[], rotation: number, athletes: Athlete[]): { current: number; front: number; back: number; overall: number; best: RotationScore; weakest: RotationScore; rotations: RotationScore[] } {
+  const rotations = [1, 2, 3, 4, 5, 6].map((next) => {
+    const scored = scoreArrangement(advanceSlots(slots, next - rotation), athletes);
+    return { rotation: next, score: scored.current, front: scored.front, back: scored.back, fits: scored.fits };
+  });
+  const current = rotations.find((item) => item.rotation === rotation) ?? rotations[0];
+  const best = rotations.reduce((lead, item) => (item.score > lead.score ? item : lead));
+  const weakest = rotations.reduce((lead, item) => (item.score < lead.score ? item : lead));
+  return { current: current.score, front: current.front, back: current.back, overall: average(rotations.map((item) => item.score)), best, weakest, rotations };
+}
+
+export function setterSpotIndices(formation: Formation, rotation: number): number[] {
+  const markers: (number | null)[] = courtRoles(formation).map((role, index) => (role === "Setter" ? index + 1 : null));
+  return advanceSlots(markers, rotation - 1).flatMap((value, index) => (value != null ? [index] : []));
+}
+
+export function lineupNotes(slots: (number | null)[], formation: Formation, rotation: number, athletes: Athlete[]): string[] {
+  const notes: string[] = [];
+  const ids = slots.filter((id): id is number => id != null);
+  if (new Set(ids).size !== ids.length) notes.push("Duplicate assignment");
+  if (slots.some((id) => id == null)) notes.push("Missing player");
+  if (formation === "4-2") {
+    const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
+    const invalid = setterSpotIndices(formation, rotation).some((index) => {
+      const athlete = slots[index] != null ? byId.get(slots[index] as number) : undefined;
+      return !athlete?.position.toLowerCase().includes("setter");
+    });
+    if (invalid) notes.push("Invalid setter for 4-2");
+  }
+  const scored = scoreArrangement(slots, athletes);
+  const low = COURT_SPOTS.filter((spot, index) => slots[spot.index] != null && scored.fits[index] < 70).map((spot) => spot.number);
+  if (low.length) notes.push(`Low fit in position ${low.join(", ")}`);
+  const byId = new Map(athletes.map((athlete) => [athlete.id, athlete]));
+  const skillAt = (indexes: number[], skill: SkillKey) => {
+    const values = indexes.map((index) => (slots[index] != null ? latestAssessment(byId.get(slots[index] as number)!).skills[skill] : null));
+    if (values.some((value) => value == null)) return null;
+    return average(values as number[]);
+  };
+  const frontAttack = skillAt([0, 1, 2], "attack");
+  const backDefense = skillAt([3, 4, 5], "defense");
+  if (frontAttack != null && frontAttack >= 85) notes.push("Strong front row attack");
+  if (backDefense != null && backDefense < 75) notes.push("Weak back row defense");
+  return notes;
+}
+
+export function suggestSlots(athletes: Athlete[], formation: Formation, rotation = 1): (number | null)[] {
   const used = new Set<number>();
-  return courtRoles(formation).map((role) => {
+  const base = courtRoles(formation).map((role) => {
     const skill = ROLE_SKILL[role] ?? "defense";
     const ranked = athletes
       .filter((athlete) => !used.has(athlete.id))
@@ -222,6 +309,7 @@ export function suggestSlots(athletes: Athlete[], formation: Formation): (number
     used.add(pick.id);
     return pick.id;
   });
+  return advanceSlots(base, rotation - 1);
 }
 
 function roleScore(athlete: Athlete, role: string, skill: SkillKey): number {
