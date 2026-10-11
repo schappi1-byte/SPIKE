@@ -7,7 +7,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Account } from "../../lib/types";
 import { AUTH_COOKIE_OPTIONS } from "./auth-cookies";
-import { isSupabaseConfigured } from "./supabase";
+import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "./supabase";
 
 const PROFILE_COLUMNS = "user_id, username, team_id, role, player_id, display_name";
 
@@ -31,7 +31,7 @@ export function matchesSecret(given: string, expected: string | undefined): bool
 /** Supabase client acting as the signed-in user, so row-level security applies. */
 export async function userClient(): Promise<SupabaseClient> {
   const store = await cookies();
-  return createServerClient(process.env.SUPABASE_URL ?? "", process.env.SUPABASE_PUBLISHABLE_KEY ?? "", {
+  return createServerClient(supabaseUrl() ?? "", supabasePublishableKey() ?? "", {
     cookieOptions: AUTH_COOKIE_OPTIONS,
     cookies: {
       getAll: () => store.getAll(),

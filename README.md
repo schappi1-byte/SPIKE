@@ -63,7 +63,7 @@ All keys stay on the server. The browser only talks to this app's own API routes
 
 ## Deploying
 
-Vercel runs the site. In the Vercel project's environment variables, set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `COACH_PASSCODE`, and `TEAM_JOIN_CODE`, and set the framework preset to Next.js. Add them by hand: the Supabase–Vercel integration creates `NEXT_PUBLIC_` variables, which this app doesn't use.
+Vercel runs the site. In the Vercel project's environment variables, set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `COACH_PASSCODE`, and `TEAM_JOIN_CODE`, and set the framework preset to Next.js. The `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` names that the Supabase–Vercel integration creates also work. Never give `SUPABASE_SECRET_KEY` a `NEXT_PUBLIC_` prefix.
 
 The Spectrum and `REMINDER_HOUR` keys belong to the `backend/messaging/` service, which runs outside Vercel.
 
