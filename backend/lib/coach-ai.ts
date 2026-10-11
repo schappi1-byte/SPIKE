@@ -102,7 +102,7 @@ const PLAN_SCHEMA = {
 function gemini(): { ai: GoogleGenAI; model: string } | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
-  return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || "gemini-2.5-flash" };
+  return { ai: new GoogleGenAI({ apiKey }), model: process.env.GEMINI_MODEL || "gemini-3.8-flash" };
 }
 
 /** Easiest drills first, spread over the week. Used when Gemini is unavailable or returns bad ids. */
@@ -128,29 +128,29 @@ export async function generateTrainingPlan(ctx: PlayerContext): Promise<{ plan: 
   const client = gemini();
   if (!client) return { plan: fallbackPlan(ctx), source: "fallback" };
 
-  const response = await client.ai.models.generateContent({
-    model: client.model,
-    contents: JSON.stringify(contextForModel(ctx)),
-    config: {
-      systemInstruction:
-        "You are a college volleyball coach writing a one-week individual training plan. " +
-        "Use only the player data provided. Every exercise_id must come from candidate_exercises. " +
-        "Start with an easier drill if the player scored below 75 on a drill for this skill. " +
-        "Keep each coaching_cue to one short, specific sentence the player can act on.",
-      responseMimeType: "application/json",
-      responseJsonSchema: PLAN_SCHEMA,
-      temperature: 0.4,
-    },
-  });
-
   const allowed = new Set(ctx.candidates.map((e) => e.exercise_id));
   try {
+    const response = await client.ai.models.generateContent({
+      model: client.model,
+      contents: JSON.stringify(contextForModel(ctx)),
+      config: {
+        systemInstruction:
+          "You are a college volleyball coach writing a one-week individual training plan. " +
+          "Use only the player data provided. Every exercise_id must come from candidate_exercises. " +
+          "Start with an easier drill if the player scored below 75 on a drill for this skill. " +
+          "Keep each coaching_cue to one short, specific sentence the player can act on.",
+        responseMimeType: "application/json",
+        responseJsonSchema: PLAN_SCHEMA,
+        temperature: 0.4,
+      },
+    });
     const parsed = JSON.parse(response.text ?? "") as Omit<TrainingPlan, "focus_skill">;
     if (parsed.sessions.length === 0 || !parsed.sessions.every((s) => allowed.has(s.exercise_id))) {
       return { plan: fallbackPlan(ctx), source: "fallback" };
     }
     return { plan: { focus_skill: ctx.focusSkill, reason: parsed.reason, sessions: parsed.sessions }, source: "gemini" };
-  } catch {
+  } catch (error) {
+    console.error("Gemini training plan failed, using fallback:", error instanceof Error ? error.message : error);
     return { plan: fallbackPlan(ctx), source: "fallback" };
   }
 }
@@ -170,16 +170,21 @@ export async function answerPlayerQuestion(ctx: PlayerContext, question: string,
   if (!client) {
     return "SPIKE can't answer questions yet because GEMINI_API_KEY isn't set. Text PLAN for your training plan or ROTATION for your court position.";
   }
-  const response = await client.ai.models.generateContent({
-    model: client.model,
-    contents: JSON.stringify({ ...contextForModel(ctx), current_rotation: liveRotation, question }),
-    config: {
-      systemInstruction:
-        "You are SPIKE, a volleyball coaching assistant replying by text message to one player. " +
-        "Answer only from the player data provided and general volleyball technique. " +
-        "If the data doesn't contain the answer, say so. Keep the reply under 600 characters, plain text, no markdown.",
-      temperature: 0.5,
-    },
-  });
-  return response.text?.trim() || "Sorry, I couldn't come up with an answer. Try asking another way.";
+  try {
+    const response = await client.ai.models.generateContent({
+      model: client.model,
+      contents: JSON.stringify({ ...contextForModel(ctx), current_rotation: liveRotation, question }),
+      config: {
+        systemInstruction:
+          "You are SPIKE, a volleyball coaching assistant replying by text message to one player. " +
+          "Answer only from the player data provided and general volleyball technique. " +
+          "If the data doesn't contain the answer, say so. Keep the reply under 600 characters, plain text, no markdown.",
+        temperature: 0.5,
+      },
+    });
+    return response.text?.trim() || "Sorry, I couldn't come up with an answer. Try asking another way.";
+  } catch (error) {
+    console.error("Gemini answer failed:", error instanceof Error ? error.message : error);
+    return "SPIKE's coaching assistant is unavailable right now. Text PLAN for your training plan or ROTATION for your court position.";
+  }
 }
