@@ -66,7 +66,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
           <TrainerFrame move="rest" paused={false} />
         </section>
         <p className="mt-3 text-sm leading-6 text-slate-500">{analysis ? "A Gemini analysis is saved and will be sent with your ratings and coach notes." : "No Gemini analysis is saved yet. The plan will use your ratings, history, and coach feedback."}</p>
-        <button type="button" onClick={generate} disabled={loading} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60">{loading ? "Building your week…" : "Create my week"}</button>
+        <button type="button" onClick={generate} disabled={loading} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60">{loading ? "Building your week…" : "Create my week"}</button>
         {error && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{error}</p>}
       </div>
     );
@@ -92,7 +92,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
         <TrainerFrame move="rest" paused={false} />
       </section>
       <section className="card mt-4 p-6">
-        <p className="text-sm font-semibold text-brand">Primary goal</p>
+        <p className="text-sm font-semibold text-brand-ink">Primary goal</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight">{saved.plan.goal}</h2>
         <p className="mt-2 text-sm text-slate-500">Created {formatWhen(saved.generatedAt)}. Practice guidance only. It does not prevent injuries or guarantee improvement. Stop if something hurts.</p>
         {stale && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">A newer evaluation or analysis is saved. Create a new week when you want the plan to match it.</p>}
@@ -103,7 +103,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
       </div>
       <div className="mt-4 flex gap-2 overflow-auto" role="group" aria-label="Training days">
         {saved.plan.days.map((item, index) => (
-          <button key={item.name} type="button" aria-pressed={index === day} onClick={() => setDay(index)} className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold ${index === day ? "bg-brand text-white" : "border border-slate-200 bg-white"}`}>{item.name}</button>
+          <button key={item.name} type="button" aria-pressed={index === day} onClick={() => setDay(index)} className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold ${index === day ? "bg-brand text-navy" : "border border-slate-200 bg-white"}`}>{item.name}</button>
         ))}
       </div>
       <section className="card mt-4 p-4">
@@ -119,7 +119,7 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
             </li>
           ))}
         </ol>
-        <button type="button" onClick={() => update({ ...saved, session: { ...startSession(day), exercise: Math.max(0, selected.exercises.findIndex((_, index) => !finished.includes(index))) } })} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-white">Start training</button>
+        <button type="button" onClick={() => update({ ...saved, session: { ...startSession(day), exercise: Math.max(0, selected.exercises.findIndex((_, index) => !finished.includes(index))) } })} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-navy">Start training</button>
         <button type="button" onClick={generate} disabled={loading} className="mx-2 mt-2 text-sm font-semibold text-slate-500">{loading ? "Building your week…" : "Create a new week"}</button>
         {error && <p className="mx-2 mt-3 text-sm text-amber-800" role="alert">{error}</p>}
       </section>
@@ -177,7 +177,7 @@ function Workout({ saved, onChange }: { saved: SavedPlan; onChange: (next: Saved
         <TrainerFrame move="rest" paused={false} />
         <h1 className="mt-4 text-2xl font-bold">Workout complete</h1>
         <p className="mt-2 text-sm text-slate-500">{day.name} is checked off. This records the sets you confirmed. It does not measure your repetitions.</p>
-        <button type="button" onClick={() => { keep.current = false; onChange({ ...saved, session: null }); }} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white">Back to the week</button>
+        <button type="button" onClick={() => { keep.current = false; onChange({ ...saved, session: null }); }} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy">Back to the week</button>
       </div>
     );
   }
@@ -193,13 +193,13 @@ function Workout({ saved, onChange }: { saved: SavedPlan; onChange: (next: Saved
         {exercise.animation === "none" && session.phase === "exercising" && <p className="px-4 text-center text-sm text-slate-500">This exercise has no matching animation. Follow the written instructions.</p>}
       </section>
       <section className="card p-4 md:p-5">
-        <p className="text-sm font-semibold text-brand">{PHASES[exercise.phase]} · {exercise.skill} · {exercise.difficulty}</p>
+        <p className="text-sm font-semibold text-brand-ink">{PHASES[exercise.phase]} · {exercise.skill} · {exercise.difficulty}</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">{exercise.name}</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">{exercise.instructions}</p>
         <p className="mt-4 text-sm font-semibold text-slate-500">Set {session.set + 1} of {exercise.sets}{exercise.reps > 0 ? ` · ${exercise.reps} demonstrations` : ` · ${exercise.durationSec}s`}</p>
         <p className="mt-2 text-center text-4xl font-bold tabular-nums sm:text-5xl" aria-live="polite">{session.phase === "paused" ? "Paused" : labelFor(session.phase, waiting)} {session.phase === "paused" ? "" : clock}</p>
         {exercise.reps > 0 && <p className="mt-2 text-center text-xs text-slate-500">The figure demonstrates the set. It does not verify your repetitions.</p>}
-        {waiting && <button type="button" onClick={() => { const step = finishEffort(session, exercise); patch(step.session, step.session.afterRest === "exercise" ? session.exercise : null); }} className="mt-4 w-full rounded-xl bg-brand py-3 text-sm font-semibold text-white">I finished this set</button>}
+        {waiting && <button type="button" onClick={() => { const step = finishEffort(session, exercise); patch(step.session, step.session.afterRest === "exercise" ? session.exercise : null); }} className="mt-4 w-full rounded-xl bg-brand py-3 text-sm font-semibold text-navy">I finished this set</button>}
         {session.phase === "resting" && <button type="button" onClick={() => patch({ ...session, remaining: session.remaining + 30 })} className="mt-4 w-full rounded-xl border border-slate-200 py-3 text-sm font-semibold">Add 30 seconds of rest</button>}
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" onClick={() => patch(session.phase === "paused" ? { ...session, phase: session.resume ?? "exercising", resume: null } : { ...session, phase: "paused", resume: session.phase })} className="rounded-xl bg-navy px-4 py-2.5 text-sm font-semibold text-white">{session.phase === "paused" ? "Resume" : "Pause"}</button>
@@ -234,7 +234,7 @@ function labelFor(phase: Session["phase"], waiting: boolean): string {
 
 function TrainerFrame({ move, paused }: { move: Parameters<typeof Trainer>[0]["move"]; paused: boolean }) {
   return (
-    <Suspense fallback={<div className="h-64 bg-[#0c1422] sm:h-80 md:h-[42vh] md:max-h-[480px]" />}>
+    <Suspense fallback={<div className="grid h-64 place-items-center bg-navy text-sm text-slate-300 sm:h-80 md:h-[42vh] md:max-h-[480px]">Loading 3D trainer…</div>}>
       <Trainer move={move} paused={paused} />
     </Suspense>
   );
@@ -243,7 +243,7 @@ function TrainerFrame({ move, paused }: { move: Parameters<typeof Trainer>[0]["m
 function Header() {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand">TRAINING</p>
+      <p className="text-sm font-semibold text-brand-ink">TRAINING</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight">This week</h1>
     </div>
   );

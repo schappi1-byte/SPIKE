@@ -30,7 +30,7 @@ export default function PlayerDash({
   const athlete = athletes.find((item) => item.id === athleteId) ?? athletes[0];
   return (
     <Shell dock label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
-      <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand">Switch player</button>
+      <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand-ink">Switch player</button>
       {section === "overview" && <Overview athlete={athlete} />}
       {section === "analyze" && <Analyze athlete={athlete} onTraining={() => onSection("training")} />}
       {section === "training" && <TrainingBoard athlete={athlete} />}
@@ -71,13 +71,13 @@ function Overview({ athlete }: { athlete: Athlete }) {
       </section>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="card p-6">
-          <p className="text-sm font-semibold text-brand">How am I performing?</p>
+          <p className="text-sm font-semibold text-brand-ink">How am I performing?</p>
           <h2 className="mt-1 font-bold">Latest skill profile</h2>
           <p className="mt-1 text-sm text-slate-500">Updated {formatWhen(latest.recordedAt)} · prototype roster until a coach saves a new evaluation</p>
           <div className="mt-5"><RadarChart skills={latest.skills} /></div>
         </section>
         <section className="card p-6">
-          <p className="text-sm font-semibold text-brand">What is my coach saying?</p>
+          <p className="text-sm font-semibold text-brand-ink">What is my coach saying?</p>
           <h2 className="mt-1 font-bold">Latest evaluation</h2>
           <div className="mt-5 space-y-4 text-sm leading-6">
             <Note label="Strength" text={latest.strengths} />
@@ -97,7 +97,7 @@ function Overview({ athlete }: { athlete: Athlete }) {
           )}
         </section>
         <section className="card p-6">
-          <p className="text-sm font-semibold text-brand">What should I work on?</p>
+          <p className="text-sm font-semibold text-brand-ink">What should I work on?</p>
           <h2 className="mt-1 font-bold">This cycle</h2>
           <p className="mt-1 text-sm text-slate-500">Built from the three lowest saved ratings. Not an AI recommendation.</p>
           <ul className="mt-5 space-y-3">
@@ -113,7 +113,7 @@ function Overview({ athlete }: { athlete: Athlete }) {
           </ul>
         </section>
         <section className="card p-6">
-          <p className="text-sm font-semibold text-brand">Am I improving?</p>
+          <p className="text-sm font-semibold text-brand-ink">Am I improving?</p>
           <h2 className="mt-1 font-bold">Rating history and training</h2>
           <div className="mt-4"><TrendChart athlete={athlete} /></div>
           <p className="mt-4 text-sm text-slate-600"><span className="font-bold text-navy">{done} of {plan.length}</span> exercises done since {formatWhen(latest.recordedAt)} · {adherence(athlete)}% of this cycle</p>

@@ -2,11 +2,38 @@
 @import "tailwindcss";
 
 @theme {
-  --color-navy: #101b30;
-  --color-brand: #3478f6;
-  --color-brand-dark: #2365db;
-  --color-canvas: #f4f6fa;
+  --color-carolina: #4b9cd3;
+  --color-navy: #13294b;
+  --color-white: #ffffff;
+  --color-brand: var(--color-carolina);
+  --color-brand-light: color-mix(in srgb, var(--color-carolina) 80%, var(--color-white));
+  --color-brand-ink: color-mix(in srgb, var(--color-carolina) 70%, var(--color-navy));
+  --color-canvas: color-mix(in srgb, var(--color-carolina) 6%, var(--color-white));
   --font-sans: "DM Sans", sans-serif;
+
+  /* Default Tailwind palettes used by the app, remapped onto the UNC palette. */
+  --color-slate-50: color-mix(in srgb, var(--color-carolina) 6%, var(--color-white));
+  --color-slate-100: color-mix(in srgb, var(--color-carolina) 14%, var(--color-white));
+  --color-slate-200: color-mix(in srgb, var(--color-carolina) 28%, var(--color-white));
+  --color-slate-300: color-mix(in srgb, var(--color-carolina) 40%, var(--color-white));
+  --color-slate-400: color-mix(in srgb, var(--color-navy) 55%, var(--color-white));
+  --color-slate-500: color-mix(in srgb, var(--color-navy) 72%, var(--color-white));
+  --color-slate-600: color-mix(in srgb, var(--color-navy) 84%, var(--color-white));
+  --color-slate-700: color-mix(in srgb, var(--color-navy) 92%, var(--color-white));
+  --color-blue-50: color-mix(in srgb, var(--color-carolina) 12%, var(--color-white));
+  --color-blue-200: color-mix(in srgb, var(--color-carolina) 50%, var(--color-white));
+  --color-blue-500: var(--color-carolina);
+  --color-amber-50: color-mix(in srgb, var(--color-carolina) 10%, var(--color-white));
+  --color-amber-200: color-mix(in srgb, var(--color-carolina) 35%, var(--color-white));
+  --color-amber-700: var(--color-navy);
+  --color-amber-800: var(--color-navy);
+  --color-amber-900: var(--color-navy);
+  --color-emerald-50: color-mix(in srgb, var(--color-carolina) 16%, var(--color-white));
+  --color-emerald-300: var(--color-carolina);
+  --color-emerald-700: color-mix(in srgb, var(--color-carolina) 60%, var(--color-navy));
+  --color-emerald-800: color-mix(in srgb, var(--color-carolina) 50%, var(--color-navy));
+  --color-rose-300: var(--color-white);
+  --color-rose-600: var(--color-navy);
 }
 
 @layer base {
@@ -33,7 +60,7 @@
   input:focus-visible,
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid #3478f6;
+    outline: 2px solid var(--color-brand);
     outline-offset: 2px;
   }
 }
@@ -49,18 +76,51 @@
   }
 }
 
+@keyframes drift {
+  to {
+    transform: translate3d(5%, -4%, 0) rotate(8deg) scale(1.1);
+  }
+}
+
 .rise {
   animation: rise 180ms ease;
 }
 
+.aurora {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--color-navy);
+}
+
+.aurora::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  z-index: -1;
+  background:
+    radial-gradient(38% 42% at 22% 28%, color-mix(in srgb, var(--color-carolina) 75%, transparent), transparent 70%),
+    radial-gradient(32% 38% at 80% 22%, color-mix(in srgb, var(--color-carolina) 50%, transparent), transparent 70%),
+    radial-gradient(42% 46% at 68% 82%, color-mix(in srgb, var(--color-carolina) 58%, transparent), transparent 70%),
+    radial-gradient(24% 26% at 50% 48%, color-mix(in srgb, var(--color-white) 14%, transparent), transparent 70%),
+    radial-gradient(30% 34% at 18% 85%, color-mix(in srgb, var(--color-carolina) 28%, transparent), transparent 70%);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+.court {
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--color-carolina) 22%, var(--color-white)) 0 14px, color-mix(in srgb, var(--color-carolina) 30%, var(--color-white)) 14px 15px);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .rise {
+  .rise,
+  .aurora::before {
     animation: none;
   }
 }
 
 @layer utilities {
   .card {
-    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(16,27,48,0.05)];
+    @apply rounded-2xl border border-slate-200 bg-white shadow-lg shadow-navy/5;
   }
 }

@@ -82,7 +82,7 @@ function Overview({ onOpen }: { onOpen: (id: number) => void }) {
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-semibold text-brand">SQUAD</p>
+          <p className="text-sm font-semibold text-brand-ink">SQUAD</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">{greeting()}, Coach</h1>
           <p className="mt-2 text-sm text-slate-500">Prototype roster stored on this device. Ratings update when you save an evaluation.</p>
         </div>
@@ -231,17 +231,17 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-brand">EVALUATION</p>
+              <p className="text-sm font-semibold text-brand-ink">EVALUATION</p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight">{athlete.name}</h1>
               <p className="mt-1 text-sm text-slate-500">#{athlete.number} · {athlete.position} · last saved {formatWhen(latest.recordedAt)}</p>
             </div>
-            <button type="button" onClick={onOpenPlayer} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand">Open athlete view</button>
+            <button type="button" onClick={onOpenPlayer} className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Open athlete view</button>
           </div>
           <div className="mt-6 space-y-4">
             {SKILL_KEYS.map((key) => (
               <label key={key} className="block text-sm">
                 <span className="mb-1 flex justify-between font-medium text-slate-600"><span>{SKILL_LABEL[key]}</span><span className="font-bold text-navy tabular-nums">{draft.skills[key]}</span></span>
-                <input type="range" min={0} max={100} value={draft.skills[key]} aria-valuetext={`${SKILL_LABEL[key]} ${draft.skills[key]}`} onChange={(event) => updateSkill(key, Number(event.target.value))} className="w-full accent-[#3478f6]" />
+                <input type="range" min={0} max={100} value={draft.skills[key]} aria-valuetext={`${SKILL_LABEL[key]} ${draft.skills[key]}`} onChange={(event) => updateSkill(key, Number(event.target.value))} className="w-full accent-brand" />
               </label>
             ))}
           </div>
@@ -251,7 +251,7 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
           {error && <p className="mt-4 text-sm font-medium text-amber-700" role="alert">{error}</p>}
           {message && <p className="mt-4 text-sm font-medium text-emerald-700" role="status">{message}</p>}
           <div className="mt-5 flex gap-2">
-            <button type="submit" className="rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-white hover:bg-brand-dark">Save evaluation</button>
+            <button type="submit" className="rounded-xl bg-brand px-4 py-3 text-sm font-semibold text-navy hover:bg-brand-light">Save evaluation</button>
             <button type="button" onClick={() => { setDraft(draftFrom(athlete)); setMessage(null); setError(null); }} className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600">Cancel</button>
           </div>
         </form>
@@ -364,7 +364,7 @@ function LineupBoard() {
       <section className="card p-4 sm:p-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-semibold text-brand">LINEUP</p>
+            <p className="text-sm font-semibold text-brand-ink">LINEUP</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight">Court</h1>
             <p className="mt-1 max-w-xl text-sm text-slate-500">Six players on the court. Everyone else stays on the bench. Drag between the court and the bench, or select a player and tap a spot.</p>
           </div>
@@ -385,36 +385,36 @@ function LineupBoard() {
             <div className="mt-1 flex flex-wrap items-center gap-1" role="group" aria-label="Rotation">
               <button type="button" onClick={() => rotateTo(draft.rotation - 1)} className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold">Previous</button>
               {[1, 2, 3, 4, 5, 6].map((rotation) => (
-                <button key={rotation} type="button" aria-pressed={draft.rotation === rotation} onClick={() => rotateTo(rotation)} className={`size-9 rounded-lg text-sm font-bold ${draft.rotation === rotation ? "bg-brand text-white" : "border border-slate-200"}`}>{rotation}</button>
+                <button key={rotation} type="button" aria-pressed={draft.rotation === rotation} onClick={() => rotateTo(rotation)} className={`size-9 rounded-lg text-sm font-bold ${draft.rotation === rotation ? "bg-brand text-navy" : "border border-slate-200"}`}>{rotation}</button>
               ))}
               <button type="button" onClick={() => rotateTo(draft.rotation + 1)} className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold">Next</button>
             </div>
           </div>
         </div>
-        <div className="relative mt-5 aspect-[5/4] w-full overflow-hidden rounded-md shadow-inner" style={{ background: "repeating-linear-gradient(90deg, #e7c99a 0 14px, #dfbe88 14px 15px), linear-gradient(180deg, #efd7ae, #d7b07a 48%, #c99658)" }} onClick={() => setPopover(null)}>
+        <div className="relative mt-5 aspect-[5/4] w-full overflow-hidden rounded-md shadow-inner court" onClick={() => setPopover(null)}>
           <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 80" aria-hidden="true">
             <rect x="6" y="8" width="88" height="68" fill="none" stroke="white" strokeWidth="1.2" />
             <line x1="6" y1="30" x2="94" y2="30" stroke="white" strokeWidth="0.8" />
           </svg>
-          <div className="pointer-events-none absolute inset-x-[6%] top-0 z-20 h-3 border-b-2 border-white bg-[repeating-linear-gradient(90deg,#ffffff_0_3px,#dbe4ef_3px_5px)]" />
-          <span className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6b4a22]">Net</span>
-          <span className="pointer-events-none absolute bottom-[5%] left-[8%] text-[10px] font-bold uppercase tracking-[0.14em] text-[#6b4a22]">Rotation {draft.rotation}</span>
+          <div className="pointer-events-none absolute inset-x-[6%] top-0 z-20 h-3 border-b-2 border-white bg-[repeating-linear-gradient(90deg,var(--color-white)_0_3px,var(--color-slate-200)_3px_5px)]" />
+          <span className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 text-[10px] font-bold uppercase tracking-[0.16em] text-navy">Net</span>
+          <span className="pointer-events-none absolute bottom-[5%] left-[8%] text-[10px] font-bold uppercase tracking-[0.14em] text-navy">Rotation {draft.rotation}</span>
           {OUR_MARKERS.map((marker) => {
             const spot = COURT_SPOTS[marker.index];
             const athlete = draft.slots[marker.index] != null ? byId.get(draft.slots[marker.index] as number) : undefined;
             const open = selected != null && !athlete;
             return (
               <div key={spot.number} className="absolute z-10 flex w-[22%] -translate-x-1/2 -translate-y-1/2 flex-col items-center" style={{ left: `${marker.x}%`, top: `${marker.y}%` }} onDragOver={(event) => event.preventDefault()} onDragEnter={() => setOver(marker.index)} onDragLeave={() => setOver((current) => (current === marker.index ? null : current))} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); setOver(null); const id = Number(event.dataTransfer.getData("text/plain")); if (id) place(marker.index, id); }}>
-                <button type="button" draggable={Boolean(athlete)} onDragStart={(event) => { if (athlete) event.dataTransfer.setData("text/plain", String(athlete.id)); }} onClick={(event) => { event.stopPropagation(); onSpotClick(marker.index); }} aria-label={athlete ? `Position ${spot.number}, ${athlete.name}` : `Open position ${spot.number}`} className={`grid aspect-square w-[72%] place-items-center rounded-full text-sm font-bold shadow-md ${athlete ? "bg-brand text-white ring-2 ring-white" : "border-2 border-dashed border-white/80 bg-white/20 text-white"} ${open || over === marker.index ? "ring-2 ring-brand ring-offset-2 ring-offset-[#d7b07a]" : ""} ${athlete && selected === athlete.id ? "ring-4 ring-white" : ""}`}>
+                <button type="button" draggable={Boolean(athlete)} onDragStart={(event) => { if (athlete) event.dataTransfer.setData("text/plain", String(athlete.id)); }} onClick={(event) => { event.stopPropagation(); onSpotClick(marker.index); }} aria-label={athlete ? `Position ${spot.number}, ${athlete.name}` : `Open position ${spot.number}`} className={`grid aspect-square w-[72%] place-items-center rounded-full text-sm font-bold shadow-md ${athlete ? "bg-brand text-navy ring-2 ring-white" : "border-2 border-dashed border-navy/40 bg-white/50 text-navy"} ${open || over === marker.index ? "ring-2 ring-brand ring-offset-2" : ""} ${athlete && selected === athlete.id ? "ring-4 ring-white" : ""}`}>
                   {athlete ? athlete.number : spot.number}
                 </button>
-                <span className="mt-0.5 max-w-full truncate text-[10px] font-semibold leading-tight text-[#3d2a12] sm:text-xs">{athlete ? athlete.name.split(" ")[0] : "Open"}</span>
-                <span className="text-[9px] leading-tight text-[#3d2a12]/80">{athlete ? `${shortPosition(athlete.position)} · ${spot.number}` : `Zone ${spot.number}`}</span>
+                <span className="mt-0.5 max-w-full truncate text-[10px] font-semibold leading-tight text-navy sm:text-xs">{athlete ? athlete.name.split(" ")[0] : "Open"}</span>
+                <span className="text-[9px] leading-tight text-navy/80">{athlete ? `${shortPosition(athlete.position)} · ${spot.number}` : `Zone ${spot.number}`}</span>
                 {popoverAthlete && athlete?.id === popoverAthlete.id && (
                   <div className="absolute bottom-[calc(100%+6px)] z-30 w-36 rounded-xl bg-white p-2.5 text-left shadow-lg" role="dialog" aria-label={popoverAthlete.name} onClick={(event) => event.stopPropagation()}>
                     <p className="text-sm font-bold">{popoverAthlete.name}</p>
                     <p className="text-xs text-slate-500">{popoverAthlete.position}</p>
-                    <p className="mt-1 text-sm font-bold text-brand">{ratingOf(popoverAthlete)} rating</p>
+                    <p className="mt-1 text-sm font-bold text-brand-ink">{ratingOf(popoverAthlete)} rating</p>
                     <button type="button" onClick={() => clearSpot(marker.index)} className="mt-2 text-xs font-semibold text-rose-600">To bench</button>
                   </div>
                 )}
@@ -445,7 +445,7 @@ function LineupBoard() {
             <div className="max-h-80 space-y-1 overflow-auto">
               {bench.map((athlete) => (
                 <button key={athlete.id} type="button" draggable onDragStart={(event) => event.dataTransfer.setData("text/plain", String(athlete.id))} aria-pressed={selected === athlete.id} onClick={() => { setPopover(null); setSelected((current) => current === athlete.id ? null : athlete.id); }} className={`flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left ${selected === athlete.id ? "bg-blue-50 ring-2 ring-brand" : "hover:bg-slate-50"}`}>
-                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-white">{athlete.number}</span>
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-navy">{athlete.number}</span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{athlete.name}</span>
                     <span className="block text-xs text-slate-500">{athlete.position} · {ratingOf(athlete)}</span>
@@ -461,7 +461,7 @@ function LineupBoard() {
             Name
             <input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-normal" />
           </label>
-          <button type="button" onClick={() => { saveDraft(); setMessage(draft.sourceId ? "Saved lineup updated." : "Lineup saved on this device."); }} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-white">Save lineup</button>
+          <button type="button" onClick={() => { saveDraft(); setMessage(draft.sourceId ? "Saved lineup updated." : "Lineup saved on this device."); }} className="mx-2 mt-3 w-[calc(100%-1rem)] rounded-xl bg-brand py-3 text-sm font-semibold text-navy">Save lineup</button>
           <div className="mt-3 space-y-2">
             {lineups.length === 0 && <p className="px-2 text-sm text-slate-500">No saved lineups yet.</p>}
             {lineups.map((lineup) => (

@@ -39,6 +39,7 @@
   ],
   "exclude": [
     "node_modules",
+    "frontend",
     "backend/messaging",
     "backend/scripts"
   ]

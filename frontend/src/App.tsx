@@ -73,8 +73,8 @@ export default function App() {
           </div>
         </header>
         <div className="mx-auto max-w-5xl px-5 py-10">
-          <button type="button" onClick={exit} className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand"><Icon name="back" className="size-4" /> Back to home</button>
-          <p className="text-sm font-semibold text-brand">PLAYER PORTAL</p>
+          <button type="button" onClick={exit} className="mb-8 flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-brand-ink"><Icon name="back" className="size-4" /> Back to home</button>
+          <p className="text-sm font-semibold text-brand-ink">PLAYER PORTAL</p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Who is checking in?</h1>
           <p className="mt-2 text-slate-500">Choose a profile. Ratings and feedback are the same records the coach saves.</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">

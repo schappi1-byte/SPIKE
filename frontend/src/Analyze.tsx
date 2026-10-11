@@ -76,7 +76,7 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
   return (
     <div className="mx-auto max-w-6xl">
       <section className="card p-6">
-        <p className="text-sm font-semibold text-brand">ANALYZE</p>
+        <p className="text-sm font-semibold text-brand-ink">ANALYZE</p>
         <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{athlete.name}</h1>
@@ -119,7 +119,7 @@ export default function Analyze({ athlete, onTraining }: { athlete: Athlete; onT
         </section>
       </div>
       <div className="mt-6">
-        <button type="button" onClick={run} disabled={loading} className="w-full rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60 sm:w-auto">
+        <button type="button" onClick={run} disabled={loading} className="w-full rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-navy hover:bg-brand-light disabled:opacity-60 sm:w-auto">
           {loading ? "Analyzing…" : error ? "Try again" : "Analyze My Performance"}
         </button>
         {loading && <p className="mt-3 text-sm font-medium text-slate-600" role="status">{STEPS[step]}</p>}
@@ -159,7 +159,7 @@ function Results({ stored, onTraining }: { stored: Stored; onTraining: () => voi
       <Section title="Volleyball drills" items={analysis.drills} />
       <Section title="Gym exercises" items={analysis.gym} />
       <Section title="Improvement goals" items={analysis.goals} />
-      <button type="button" onClick={onTraining} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-navy hover:border-brand hover:text-brand">Go to Training</button>
+      <button type="button" onClick={onTraining} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-navy hover:border-brand hover:text-brand-ink">Go to Training</button>
     </div>
   );
 }
@@ -171,7 +171,7 @@ function Section({ title, items }: { title: string; items: Recommendation[] }) {
       <div className="mt-4 grid gap-3">
         {items.map((item) => (
           <article key={`${title}-${item.skill}-${item.title}`} className="rounded-xl border border-slate-100 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand">{item.skill}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-ink">{item.skill}</p>
             <h3 className="mt-1 font-bold">{item.title}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-700"><span className="font-semibold">Why. </span>{item.explanation}</p>
             <p className="mt-1 text-sm leading-6 text-slate-700"><span className="font-semibold">How. </span>{item.instructions}</p>

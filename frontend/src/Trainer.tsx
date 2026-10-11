@@ -1,6 +1,6 @@
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Grid, OrbitControls, useGLTF } from "@react-three/drei";
+import { Grid, Html, OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import type { AnimationId } from "./trainingPlan";
@@ -8,6 +8,10 @@ import type { AnimationId } from "./trainingPlan";
 const MODEL = "/models/xbot.glb";
 const CYCLE = 1.6;
 const LOOK: [number, number, number] = [0, 1.12, 0];
+const NAVY = new THREE.Color("#13294b");
+const CAROLINA = new THREE.Color("#4b9cd3");
+const tone = (base: THREE.Color, other: THREE.Color, amount: number) => `#${base.clone().lerp(other, amount).getHexString()}`;
+const STAGE = tone(NAVY, new THREE.Color("black"), 0.35);
 
 const labels: Record<string, string> = {
   squat: "Squat demonstration",
@@ -100,17 +104,18 @@ type Rig = {
 function prepare(source: THREE.Object3D): Rig {
   const root = SkeletonUtils.clone(source) as THREE.Object3D;
   const surface = root.getObjectByName("Beta_Surface") as THREE.SkinnedMesh;
-  const joints = root.getObjectByName("Beta_Joints");
-  if (joints) joints.visible = false;
-  surface.material = new THREE.MeshStandardMaterial({ color: "#162033", roughness: 0.78, metalness: 0.04 });
-  surface.castShadow = true;
-  const wire = new THREE.SkinnedMesh(
-    surface.geometry,
-    new THREE.MeshBasicMaterial({ color: "#d7e4f4", wireframe: true, transparent: true, opacity: 0.22, depthWrite: false }),
-  );
-  wire.bind(surface.skeleton, surface.bindMatrix);
-  wire.frustumCulled = false;
-  surface.parent?.add(wire);
+  const body = new THREE.MeshStandardMaterial({ color: tone(NAVY, new THREE.Color("black"), 0.2), roughness: 0.78, metalness: 0.04 });
+  const lines = new THREE.MeshBasicMaterial({ color: tone(CAROLINA, new THREE.Color("white"), 0.7), wireframe: true, transparent: true, opacity: 0.22, depthWrite: false });
+  for (const name of ["Beta_Surface", "Beta_Joints"]) {
+    const mesh = root.getObjectByName(name) as THREE.SkinnedMesh | undefined;
+    if (!mesh) continue;
+    mesh.material = body;
+    mesh.castShadow = true;
+    const wire = new THREE.SkinnedMesh(mesh.geometry, lines);
+    wire.bind(mesh.skeleton, mesh.bindMatrix);
+    wire.frustumCulled = false;
+    mesh.parent?.add(wire);
+  }
   const bones = new Map<string, THREE.Bone>();
   const rest = new Map<string, { quaternion: THREE.Quaternion; position: THREE.Vector3 }>();
   surface.skeleton.bones.forEach((item) => {
@@ -184,16 +189,16 @@ function Studio({ move, paused }: { move: string; paused: boolean }) {
   const shadow = useRef<THREE.Mesh>(null);
   return (
     <>
-      <color attach="background" args={["#0c1422"]} />
-      <hemisphereLight args={["#c5d4e8", "#182232", 1.05]} />
+      <color attach="background" args={[STAGE]} />
+      <hemisphereLight args={[tone(CAROLINA, new THREE.Color("white"), 0.6), NAVY, 1.05]} />
       <directionalLight position={[2.4, 4.2, 2.8]} intensity={1.35} />
-      <directionalLight position={[-2.2, 2.2, -1.6]} intensity={0.45} color="#7eabff" />
-      <Grid args={[8, 8]} cellSize={0.28} cellThickness={0.6} cellColor="#243348" sectionSize={1.4} sectionThickness={1.05} sectionColor="#3d5674" fadeDistance={7} position={[0, 0, 0]} />
+      <directionalLight position={[-2.2, 2.2, -1.6]} intensity={0.45} color={CAROLINA} />
+      <Grid args={[8, 8]} cellSize={0.28} cellThickness={0.6} cellColor={tone(NAVY, CAROLINA, 0.3)} sectionSize={1.4} sectionThickness={1.05} sectionColor={tone(NAVY, CAROLINA, 0.65)} fadeDistance={7} position={[0, 0, 0]} />
       <mesh ref={shadow} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0.02]}>
         <circleGeometry args={[0.32, 40]} />
-        <meshBasicMaterial color="#050910" transparent opacity={0.72} />
+        <meshBasicMaterial color={tone(NAVY, new THREE.Color("black"), 0.75)} transparent opacity={0.72} />
       </mesh>
-      <Suspense fallback={null}>
+      <Suspense fallback={<Html center className="whitespace-nowrap text-sm text-slate-300">Loading 3D trainer…</Html>}>
         <Figure move={move} paused={paused} shadow={shadow} />
       </Suspense>
       <OrbitControls enablePan={false} enableDamping dampingFactor={0.08} minDistance={2.15} maxDistance={4.8} minPolarAngle={0.55} maxPolarAngle={1.4} target={LOOK} />
@@ -215,7 +220,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 export default function Trainer({ move, paused }: { move: AnimationId | "rest"; paused: boolean }) {
   return (
     <Boundary>
-      <div className="trainer-view relative h-64 w-full overflow-hidden bg-[#0c1422] sm:h-80 md:h-[42vh] md:max-h-[480px]" data-move={move} role="img" aria-label={labels[move] ?? "Standing"} style={{ touchAction: "none" }}>
+      <div className="trainer-view relative h-64 w-full overflow-hidden bg-navy sm:h-80 md:h-[42vh] md:max-h-[480px]" data-move={move} role="img" aria-label={labels[move] ?? "Standing"} style={{ touchAction: "none" }}>
         <Canvas camera={{ position: [1.35, 1.35, 3.55], fov: 38 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, powerPreference: "high-performance" }}>
           <Studio move={move} paused={paused} />
         </Canvas>
