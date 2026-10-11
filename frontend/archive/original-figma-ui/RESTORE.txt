@@ -1,0 +1,6 @@
+Restore the original Figma Make screens by copying these files back over the project root.
+From the project root:
+cp archive/original-figma-ui/src/* src/
+cp archive/original-figma-ui/index.html index.html
+cp archive/original-figma-ui/public/favicon.svg public/favicon.svg
+cp archive/original-figma-ui/.figma/make/site.json .figma/make/site.json

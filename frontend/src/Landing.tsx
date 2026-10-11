@@ -1,0 +1,42 @@
+import type { ReactNode } from "react";
+
+function Button({ children, onClick, secondary = false }: { children: ReactNode; onClick: () => void; secondary?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} className={`w-full rounded-xl px-6 py-3.5 text-sm font-semibold transition duration-200 active:scale-[0.98] sm:w-44 ${secondary ? "bg-white text-navy hover:bg-blue-50" : "bg-brand text-white shadow-lg shadow-blue-500/25 hover:bg-brand-dark"}`}>
+      {children}
+    </button>
+  );
+}
+
+function Volleyball() {
+  return (
+    <svg className="pointer-events-none absolute left-[calc(50%+0.018em)] top-[0.08em] h-[0.21em] w-[0.21em] -translate-x-1/2" viewBox="0 0 36 36" aria-hidden="true">
+      <defs>
+        <radialGradient id="spike-shade" cx="34%" cy="30%" r="72%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="58%" stopColor="#f2f4f7" />
+          <stop offset="100%" stopColor="#c5ced6" />
+        </radialGradient>
+      </defs>
+      <circle cx="18" cy="18" r="18" fill="url(#spike-shade)" />
+      <path fill="#5f6a78" d="M32.809 7.779c-2.156-.087-5.324.186-8.21 1.966-.009.005-.019.004-.028.009-.02.011-.031.03-.05.042-2.148 1.348-4.131 3.539-5.411 7.054-2.395-.049-4.569-.286-6.488-.715C16.789 4.13 25.77 3.83 29.699 4.337c-.91-.78-1.894-1.473-2.948-2.061-5.071.24-12.398 2.611-16.065 13.335-1.797-.578-3.319-1.35-4.534-2.312.051-.075.098-.155.128-.246C9.604 2.972 18.478.735 21.108.286 20.097.11 19.062 0 18 0c-1.037 0-2.046.107-3.035.275C11.227 2.109 6.884 5.52 4.609 11.794 3.499 10.42 3.071 9.078 2.91 8.206c-.501.771-.943 1.583-1.323 2.43.425.984 1.077 2.074 2.096 3.137 3.168 3.307 8.495 5.01 15.807 5.088.641 2.235.969 4.287 1.064 6.152-11.714.419-17.645-4.414-20.49-8.277C.035 17.155 0 17.573 0 18c0 .589.033 1.171.088 1.746 3.422 3.627 9.303 7.297 19.114 7.297.445 0 .907-.016 1.368-.032-.07 1.93-.382 3.629-.817 5.094-9.528-.256-14.941-3.361-17.932-6.255.931 1.915 2.182 3.641 3.698 5.102 3.275 1.666 7.681 2.906 13.566 3.029-.316.757-.654 1.429-.99 2.014.8-.004 1.583-.076 2.356-.181 1.828-3.749 3.305-9.756.842-17.938l-.197-.613c.91-2.363 2.181-4.011 3.592-5.144 4.465 9.084 2.105 17.699-.101 22.62.94-.37 1.837-.82 2.692-1.336 2.027-5.501 3.435-13.744-.906-22.383 1.404-.729 2.848-1.075 4.144-1.213.008.014.008.031.017.045 4.295 6.693 2.406 15.067-.073 21.119 1.599-1.536 2.906-3.364 3.853-5.399 1.399-6.064.893-11.461-1.516-15.822.486.027.91.073 1.248.122-.369-.726-.777-1.428-1.237-2.093z" />
+    </svg>
+  );
+}
+
+export default function Landing({ onCoach, onPlayer }: { onCoach: () => void; onPlayer: () => void }) {
+  return (
+    <main className="grid min-h-dvh place-items-center bg-navy px-6 text-white">
+      <div className="flex w-full max-w-3xl flex-col items-center text-center">
+        <h1 className="text-7xl font-bold tracking-[-0.04em] sm:text-8xl lg:text-9xl">
+          SP<span className="relative inline-block">i<Volleyball /></span>KE
+        </h1>
+        <p className="mt-4 text-lg font-medium text-slate-300 sm:text-xl">Smarter Coaching. Stronger Players.</p>
+        <div className="mt-8 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+          <Button onClick={onCoach}>Coach</Button>
+          <Button onClick={onPlayer} secondary>Player</Button>
+        </div>
+      </div>
+    </main>
+  );
+}

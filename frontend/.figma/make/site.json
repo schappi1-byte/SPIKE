@@ -1,0 +1,11 @@
+{
+  "title": "SPIKE | Volleyball Analytics & Training",
+  "description": "Enhance volleyball coaching and player development with a responsive platform featuring dashboards for coaches and players, promoting smarter training and performance.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
