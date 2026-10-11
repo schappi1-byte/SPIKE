@@ -1,0 +1,16 @@
+player_id,team_id,name,position,eligible_positions,height_cm,class_year,is_setter
+unc-w-01,unc-chapel-hill-wvb,Maya Ellison,OH,OH|OPP,185,Junior,false
+unc-w-02,unc-chapel-hill-wvb,Priya Nandakumar,OH,OH,183,Senior,false
+unc-w-03,unc-chapel-hill-wvb,Claire Donovan,OH,OH|DS,180,Sophomore,false
+unc-w-04,unc-chapel-hill-wvb,Hannah Cho,OH,OH,178,Freshman,false
+unc-w-05,unc-chapel-hill-wvb,Jordan Hale,OPP,OPP|OH,191,Senior,false
+unc-w-06,unc-chapel-hill-wvb,Sofia Reyes,OPP,OPP,188,Freshman,false
+unc-w-07,unc-chapel-hill-wvb,Amina Diallo,MB,MB,193,Junior,false
+unc-w-08,unc-chapel-hill-wvb,Brooke Keller,MB,MB,191,Senior,false
+unc-w-09,unc-chapel-hill-wvb,Elise Moreau,MB,MB,190,Sophomore,false
+unc-w-10,unc-chapel-hill-wvb,Quinn Adler,S,S,178,Junior,true
+unc-w-11,unc-chapel-hill-wvb,Naomi Park,S,S|DS,175,Sophomore,true
+unc-w-12,unc-chapel-hill-wvb,Tess Morgan,L,L|DS,170,Senior,false
+unc-w-13,unc-chapel-hill-wvb,Riley Chen,L,L,168,Sophomore,false
+unc-w-14,unc-chapel-hill-wvb,Camila Vargas,DS,DS|L,173,Junior,false
+unc-w-15,unc-chapel-hill-wvb,Grace Whitfield,DS,DS,170,Freshman,false

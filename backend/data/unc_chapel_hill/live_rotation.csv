@@ -1,0 +1,7 @@
+session_id,team_id,rotation_number,player_id,court_position,updated_at,update_status
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-01,1,2026-10-10T19:12:00-04:00,synced
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-10,2,2026-10-10T19:12:00-04:00,synced
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-07,3,2026-10-10T19:12:00-04:00,synced
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-05,4,2026-10-10T19:12:00-04:00,synced
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-11,5,2026-10-10T19:12:00-04:00,synced
+session-unc-2026-10-10,unc-chapel-hill-wvb,1,unc-w-12,6,2026-10-10T19:12:00-04:00,synced

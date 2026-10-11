@@ -1,0 +1,36 @@
+{
+  "name": "spike",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:link": "supabase link --workdir backend --project-ref qjtolrswazbmcureevta",
+    "db:push": "supabase db push --workdir backend",
+    "db:seed": "node --env-file-if-exists=backend/.env.local backend/scripts/load-data.mjs",
+    "contact:add": "node --env-file-if-exists=backend/.env.local backend/scripts/add-contact.mjs",
+    "messaging": "npm --prefix backend/messaging run start"
+  },
+  "dependencies": {
+    "@google/genai": "^2.28.0",
+    "@supabase/supabase-js": "^2.117.3",
+    "csv-parse": "^7.0.3",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "supabase": "^2.120.0",
+    "typescript": "^7.0.2"
+  }
+}

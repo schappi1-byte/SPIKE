@@ -78,6 +78,10 @@ web_modules/
 .next
 out
 
+# Vercel
+.vercel
+next-env.d.ts
+
 # Nuxt.js build / generate output
 .nuxt
 dist
@@ -147,3 +151,5 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+.env*
+!.env.example

@@ -1,0 +1,276 @@
+:root {
+  --bg: #0b1220;
+  --panel: #131c2e;
+  --panel-2: #1a2540;
+  --line: #26334f;
+  --text: #e7ecf5;
+  --muted: #94a3c0;
+  --accent: #7bafd4;
+  --accent-strong: #4b9cd3;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+header.site {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 32px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+header.site .brand {
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+
+header.site nav {
+  display: flex;
+  gap: 18px;
+}
+
+main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+h2 {
+  margin: 32px 0 12px;
+  font-size: 18px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.grid.stats {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.stat .value {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.stat .label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rating-bar {
+  display: grid;
+  grid-template-columns: 90px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.rating-bar .track {
+  height: 8px;
+  background: var(--panel-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.rating-bar .fill {
+  height: 100%;
+  background: var(--accent-strong);
+}
+
+button,
+.button {
+  appearance: none;
+  border: 1px solid var(--accent-strong);
+  background: var(--accent-strong);
+  color: #04121f;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.error {
+  color: var(--bad);
+}
+
+.court {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 16px;
+  background: #c98a4b;
+  border-radius: 12px;
+  position: relative;
+}
+
+.court .net {
+  grid-column: 1 / -1;
+  height: 6px;
+  background: #f8fafc;
+  border-radius: 999px;
+  margin-bottom: 4px;
+}
+
+.court .attack-line {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.court .slot {
+  background: rgba(11, 18, 32, 0.88);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 92px;
+}
+
+.court .slot.highlight {
+  outline: 3px solid var(--warn);
+}
+
+.court .slot .pos {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.court .slot .name {
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.rotation-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.rotation-tabs button {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.rotation-tabs button.active {
+  background: var(--accent-strong);
+  color: #04121f;
+  border-color: var(--accent-strong);
+}
+
+.plan li {
+  margin-bottom: 10px;
+}
