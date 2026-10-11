@@ -165,3 +165,27 @@ export interface TrainingPlan {
   reason: string;
   sessions: PlanSession[];
 }
+
+export type Role = "coach" | "player";
+
+export interface Account {
+  user_id: string;
+  username: string;
+  team_id: string;
+  role: Role;
+  player_id: string | null;
+  display_name: string;
+}
+
+/** `null` thread is the team chat; a player id is that player's private chat with the coaches. */
+export interface ChatMessage {
+  message_id: number;
+  team_id: string;
+  thread_player_id: string | null;
+  sender_user_id: string | null;
+  sender_name: string;
+  sender_role: Role;
+  body: string;
+  via: "web" | "imessage";
+  created_at: string;
+}

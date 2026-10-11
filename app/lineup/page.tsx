@@ -1,4 +1,5 @@
 import { SetupNotice } from "@/components/SetupNotice";
+import { getAccount } from "@/backend/lib/auth";
 import { getRoster, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { optimizeFourTwo } from "@/lib/volleyball";
@@ -12,7 +13,7 @@ export default async function LineupPage() {
   const db = publicClient();
   const [team] = await getTeams(db);
   if (!team) return <p className="muted">No teams yet. Run npm run db:seed.</p>;
-  const roster = await getRoster(db, team.team_id);
+  const [roster, account] = await Promise.all([getRoster(db, team.team_id), getAccount()]);
 
   let plan;
   try {
@@ -41,7 +42,7 @@ export default async function LineupPage() {
         <Pick label="Libero" value={name(plan.libero)} />
       </div>
 
-      <LineupBoard teamId={team.team_id} plan={plan} players={players} />
+      <LineupBoard teamId={team.team_id} plan={plan} players={players} isCoach={account?.role === "coach" && account.team_id === team.team_id} />
     </>
   );
 }

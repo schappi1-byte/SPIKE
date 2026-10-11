@@ -1,4 +1,5 @@
 import { SetupNotice } from "@/components/SetupNotice";
+import { getAccount } from "@/backend/lib/auth";
 import { getLiveSession, getRoster, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { LiveCourt } from "./LiveCourt";
@@ -11,7 +12,7 @@ export default async function LivePage() {
   const db = publicClient();
   const [team] = await getTeams(db);
   if (!team) return <p className="muted">No teams yet. Run npm run db:seed.</p>;
-  const [roster, session] = await Promise.all([getRoster(db, team.team_id), getLiveSession(db, team.team_id)]);
+  const [roster, session, account] = await Promise.all([getRoster(db, team.team_id), getLiveSession(db, team.team_id), getAccount()]);
 
   return (
     <>
@@ -23,6 +24,7 @@ export default async function LivePage() {
         teamId={team.team_id}
         initialRows={session.rows}
         players={Object.fromEntries(roster.map((p) => [p.player_id, { name: p.name, position: p.position }]))}
+        myPlayerId={account?.player_id ?? null}
       />
     </>
   );

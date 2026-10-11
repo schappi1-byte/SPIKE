@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Court } from "@/components/Court";
-import { useCoachPasscode } from "@/components/useCoachPasscode";
 import type { Position } from "@/lib/types";
 import { courtSlots, POSITION_NAMES, type RotationPlan } from "@/lib/volleyball";
 
@@ -16,11 +15,11 @@ interface Props {
   teamId: string;
   plan: RotationPlan;
   players: Record<string, PlayerInfo>;
+  isCoach: boolean;
 }
 
-export function LineupBoard({ teamId, plan, players }: Props) {
+export function LineupBoard({ teamId, plan, players, isCoach }: Props) {
   const [rotation, setRotation] = useState(1);
-  const [passcode, setPasscode] = useCoachPasscode();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pushing, setPushing] = useState(false);
@@ -44,7 +43,7 @@ export function LineupBoard({ teamId, plan, players }: Props) {
     try {
       const res = await fetch("/api/live-rotation", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-coach-passcode": passcode },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ team_id: teamId, rotation_number: rotation }),
       });
       const body = await res.json();
@@ -71,10 +70,15 @@ export function LineupBoard({ teamId, plan, players }: Props) {
       <p className="muted">Outlined: the setter running the offense this rotation.</p>
 
       <div className="row" style={{ marginTop: 16 }}>
-        <input type="password" placeholder="Coach passcode" value={passcode} onChange={(e) => setPasscode(e.target.value)} />
-        <button onClick={pushLive} disabled={pushing || !passcode}>
-          {pushing ? "Updating…" : `Send rotation ${rotation} to the live court`}
-        </button>
+        {isCoach ? (
+          <button onClick={pushLive} disabled={pushing}>
+            {pushing ? "Updating…" : `Send rotation ${rotation} to the live court`}
+          </button>
+        ) : (
+          <span className="muted">
+            <Link href="/login?next=/lineup">Log in as a coach</Link> to send a rotation to the live court.
+          </span>
+        )}
         <Link href="/live">Open live court →</Link>
       </div>
       {status ? <p style={{ color: "var(--good)" }}>{status} Players with texts on get their new position.</p> : null}

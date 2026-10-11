@@ -1,10 +1,10 @@
+import { requireCoach } from "@/backend/lib/auth";
 import { generateTrainingPlan, loadPlayerContext } from "@/backend/lib/coach-ai";
-import { requireCoach } from "@/backend/lib/coach-auth";
 import { adminClient } from "@/backend/lib/supabase";
 
 export async function POST(request: Request) {
-  const denied = requireCoach(request);
-  if (denied) return denied;
+  const coach = await requireCoach();
+  if (coach instanceof Response) return coach;
 
   const body = (await request.json().catch(() => null)) as { player_id?: unknown } | null;
   const playerId = typeof body?.player_id === "string" ? body.player_id : null;
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   const db = adminClient();
   const ctx = await loadPlayerContext(db, playerId);
   if (!ctx) return Response.json({ error: "Player not found, has no skill ratings, or no exercises are loaded." }, { status: 404 });
+  if (ctx.player.team_id !== coach.team_id) return Response.json({ error: "That player isn't on your team." }, { status: 403 });
 
   const { plan, source } = await generateTrainingPlan(ctx);
   const { data, error } = await db

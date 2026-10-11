@@ -4,6 +4,7 @@ Texts players over iMessage through [Photon Spectrum](https://photon.codes/docs/
 
 - When the coach sends a rotation to the live court, every on-court player with texts on gets their new position.
 - When a coach generates a training plan, that player gets it by text.
+- When a coach posts in SPIKE chat, players get it by text: a team chat message goes to the whole team, a private message to that player.
 - Once a day at `REMINDER_HOUR`, players with unfinished drills get a reminder.
 - Players can text the line:
 
@@ -13,8 +14,9 @@ Texts players over iMessage through [Photon Spectrum](https://photon.codes/docs/
 | `PLAN` | Their latest training plan, or a new one |
 | `DRILLS` | Drills they haven't finished |
 | `STOP` / `START` | Turn texts off or on |
+| `ASK` + a question | A coaching answer from Gemini, based on their stats, ratings, feedback, and drills |
 | `HELP` | The command list |
-| Anything else | A coaching answer from Gemini, based on their stats, ratings, feedback, and drills |
+| Anything else | Posted to their private chat with the coaches in SPIKE |
 
 Only phone numbers saved in `player_contacts` with texts turned on get messages. Everyone else is told to ask their coach.
 

@@ -11,16 +11,17 @@ interface Props {
   teamId: string;
   initialRows: LiveRotationRow[];
   players: Record<string, { name: string; position: Position }>;
+  myPlayerId: string | null;
 }
 
-export function LiveCourt({ teamId, initialRows, players }: Props) {
+export function LiveCourt({ teamId, initialRows, players, myPlayerId }: Props) {
   const [rows, setRows] = useState(initialRows);
   const [connected, setConnected] = useState(true);
-  const [me, setMe] = useState("");
+  const [me, setMe] = useState(myPlayerId ?? "");
 
   useEffect(() => {
-    setMe(window.localStorage.getItem("spike-player-id") ?? "");
-  }, []);
+    if (!myPlayerId) setMe(window.localStorage.getItem("spike-player-id") ?? "");
+  }, [myPlayerId]);
 
   useEffect(() => {
     let cancelled = false;

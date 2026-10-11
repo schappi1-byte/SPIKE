@@ -8,6 +8,12 @@ AI-powered volleyball coaching with lineup optimization, personalized training p
 | `/lineup` | 4–2 lineup built from skill ratings and hitting efficiency, all six rotations, and a button to send one to the live court |
 | `/live` | Court that updates on every device when the coach sends a rotation |
 | `/insights` | UNC's stats in wins vs losses, a published study on what wins matches, and the 13-match log |
+| `/signup`, `/login` | Each player and coach gets their own login: pick your name, use your own passcode |
+| `/chat` | Team chat plus a private chat between each player and the coaches. Coach messages also go out by iMessage. |
+
+Anyone can view the roster, lineup, live court, and insights. Chat needs a login, and only coaches can generate plans or send rotations.
+
+Players sign up with `TEAM_JOIN_CODE` and pick their name from the roster; each name can be claimed once. Coaches sign up with `COACH_PASSCODE`. Under the hood each login is a Supabase Auth user with a hidden `<username>@spike.local` email, so no email is ever sent.
 
 ## Layout
 
@@ -16,7 +22,7 @@ AI-powered volleyball coaching with lineup optimization, personalized training p
 | `app/`, `components/` | Website pages and API routes. Vercel builds these. |
 | `lib/` | Types and volleyball logic shared by the website and backend |
 | `backend/.env.local` | Every key. Not committed. [.env.example](.env.example) lists them. |
-| `backend/lib/` | Server-only code: Supabase clients, data queries, Gemini, coach passcode check |
+| `backend/lib/` | Server-only code: Supabase clients, data queries, Gemini, logins |
 | `backend/supabase/` | Database schema migrations |
 | `backend/data/` | Real UNC Chapel Hill 2026 data and research benchmarks, with sources. See [backend/data/README.md](backend/data/README.md). |
 | `backend/scripts/` | Build the CSVs from sources (`npm run data:build`), load them, link a phone number to a player |
@@ -51,13 +57,13 @@ All keys stay on the server. The browser only talks to this app's own API routes
    npm run dev
    ```
 
-   Open http://localhost:3000. Generating plans and sending rotations asks for `COACH_PASSCODE`.
+   Open http://localhost:3000 and sign up. Coaches need `COACH_PASSCODE`; players need `TEAM_JOIN_CODE`.
 
 4. Optional, to text players: `npm run messaging`. See [backend/messaging/README.md](backend/messaging/README.md).
 
 ## Deploying
 
-Vercel runs the site. In the Vercel project's environment variables, set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL`, and `COACH_PASSCODE`, and set the framework preset to Next.js. Add them by hand: the Supabase–Vercel integration creates `NEXT_PUBLIC_` variables, which this app doesn't use.
+Vercel runs the site. In the Vercel project's environment variables, set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `COACH_PASSCODE`, and `TEAM_JOIN_CODE`, and set the framework preset to Next.js. Add them by hand: the Supabase–Vercel integration creates `NEXT_PUBLIC_` variables, which this app doesn't use.
 
 The Spectrum and `REMINDER_HOUR` keys belong to the `backend/messaging/` service, which runs outside Vercel.
 

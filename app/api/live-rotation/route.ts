@@ -1,4 +1,4 @@
-import { requireCoach } from "@/backend/lib/coach-auth";
+import { requireCoach } from "@/backend/lib/auth";
 import { getLiveSession, getRoster } from "@/backend/lib/data";
 import { adminClient, isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { courtSlots, optimizeFourTwo } from "@/lib/volleyball";
@@ -15,8 +15,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const denied = requireCoach(request);
-  if (denied) return denied;
+  const coach = await requireCoach();
+  if (coach instanceof Response) return coach;
 
   const body = (await request.json().catch(() => null)) as { team_id?: unknown; rotation_number?: unknown } | null;
   const teamId = typeof body?.team_id === "string" ? body.team_id : null;
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
   if (!teamId || !Number.isInteger(rotationNumber) || rotationNumber < 1 || rotationNumber > 6) {
     return Response.json({ error: "team_id and a rotation_number from 1 to 6 are required." }, { status: 400 });
   }
+  if (teamId !== coach.team_id) return Response.json({ error: "You can only change your own team's court." }, { status: 403 });
 
   const db = adminClient();
   const roster = await getRoster(db, teamId);

@@ -1,7 +1,7 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { useCoachPasscode } from "@/components/useCoachPasscode";
 import type { TrainingPlan } from "@/lib/types";
 
 interface Props {
@@ -9,10 +9,10 @@ interface Props {
   exerciseNames: Record<string, string>;
   initialPlan: TrainingPlan | null;
   initialCreatedAt: string | null;
+  isCoach: boolean;
 }
 
-export function PlanGenerator({ playerId, exerciseNames, initialPlan, initialCreatedAt }: Props) {
-  const [passcode, setPasscode] = useCoachPasscode();
+export function PlanGenerator({ playerId, exerciseNames, initialPlan, initialCreatedAt, isCoach }: Props) {
   const [plan, setPlan] = useState(initialPlan);
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
   const [source, setSource] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export function PlanGenerator({ playerId, exerciseNames, initialPlan, initialCre
     try {
       const res = await fetch("/api/training-plan", {
         method: "POST",
-        headers: { "content-type": "application/json", "x-coach-passcode": passcode },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ player_id: playerId }),
       });
       const body = await res.json();
@@ -43,10 +43,15 @@ export function PlanGenerator({ playerId, exerciseNames, initialPlan, initialCre
   return (
     <div className="panel">
       <div className="row">
-        <input type="password" placeholder="Coach passcode" value={passcode} onChange={(e) => setPasscode(e.target.value)} />
-        <button onClick={generate} disabled={loading || !passcode}>
-          {loading ? "Generating…" : plan ? "Generate a new plan" : "Generate plan"}
-        </button>
+        {isCoach ? (
+          <button onClick={generate} disabled={loading}>
+            {loading ? "Generating…" : plan ? "Generate a new plan" : "Generate plan"}
+          </button>
+        ) : (
+          <span className="muted">
+            <Link href={`/login?next=/players/${encodeURIComponent(playerId)}`}>Log in as a coach</Link> to generate a plan.
+          </span>
+        )}
       </div>
       {error ? <p className="error">{error}</p> : null}
 

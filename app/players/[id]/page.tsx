@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SetupNotice } from "@/components/SetupNotice";
+import { getAccount } from "@/backend/lib/auth";
 import { getExercises, getLatestPlan, getProgress, getRosterPlayer } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { SKILLS } from "@/lib/types";
@@ -14,11 +15,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
 
   const { id } = await params;
   const db = publicClient();
-  const [player, progress, exercises, latestPlan] = await Promise.all([
+  const [player, progress, exercises, latestPlan, account] = await Promise.all([
     getRosterPlayer(db, id),
     getProgress(db, id),
     getExercises(db),
     getLatestPlan(db, id),
+    getAccount(),
   ]);
   if (!player) notFound();
 
@@ -136,6 +138,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         exerciseNames={Object.fromEntries(exerciseName)}
         initialPlan={latestPlan?.plan ?? null}
         initialCreatedAt={latestPlan?.created_at ?? null}
+        isCoach={account?.role === "coach" && account.team_id === player.team_id}
       />
     </>
   );

@@ -3,7 +3,7 @@ import { Spectrum } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { answerPlayerQuestion, generateTrainingPlan, loadPlayerContext, planAsText } from "../../lib/coach-ai";
 import { getExercises, getLatestPlan, getLiveSession, getProgress } from "../../lib/data";
-import type { CourtPosition, LiveRotationRow, TrainingPlan } from "../../../lib/types";
+import type { ChatMessage, CourtPosition, LiveRotationRow, TrainingPlan } from "../../../lib/types";
 import { COURT_LABELS } from "../../../lib/volleyball";
 
 function env(name: string): string {
@@ -25,7 +25,7 @@ const im = imessage(app);
 
 const REMINDER_HOUR = Number.parseInt(process.env.REMINDER_HOUR ?? "17", 10);
 const HELP =
-  "SPIKE commands:\nROTATION: your spot on the court\nPLAN: your training plan\nDRILLS: drills you haven't finished\nSTOP: turn off texts\nOr ask any volleyball question.";
+  "SPIKE commands:\nROTATION: your spot on the court\nPLAN: your training plan\nDRILLS: drills you haven't finished\nASK + a question: ask the SPIKE coaching assistant\nSTOP: turn off texts\nAnything else goes to your coach in SPIKE chat.";
 
 interface Contact {
   player_id: string;
@@ -92,7 +92,25 @@ async function drillsText(contact: Contact): Promise<string | null> {
   return [`${contact.players?.name ?? "Hey"}, you have ${open.length} drill${open.length === 1 ? "" : "s"} to finish:`, ...lines].join("\n");
 }
 
-// Incoming texts: commands first, everything else goes to the coaching chatbot.
+/** A text reply lands in the player's private chat with the coaches. */
+async function postToCoachChat(contact: Contact, body: string) {
+  const teamId = contact.players?.team_id;
+  if (!teamId) throw new Error(`Player ${contact.player_id} has no team.`);
+  const { data: profile } = await db.from("profiles").select("user_id").eq("player_id", contact.player_id).maybeSingle();
+  const { error } = await db.from("messages").insert({
+    team_id: teamId,
+    thread_player_id: contact.player_id,
+    sender_user_id: (profile as { user_id: string } | null)?.user_id ?? null,
+    sender_name: contact.players?.name ?? contact.player_id,
+    sender_role: "player",
+    body: body.slice(0, 2000),
+    via: "imessage",
+    texted_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
+}
+
+// Incoming texts: commands first, ASK goes to the coaching assistant, everything else to the coach chat.
 async function handleInbound() {
   for await (const [space, message] of im.messages) {
     if (message.direction !== "inbound" || message.content.type !== "text") continue;
@@ -127,12 +145,20 @@ async function handleInbound() {
       else if (command === "ROTATION") await space.send(await rotationText(contact));
       else if (command === "PLAN") await space.send(await planText(contact));
       else if (command === "DRILLS") await space.send((await drillsText(contact)) ?? "You've finished every assigned drill.");
-      else {
+      else if (command === "ASK" || command.startsWith("ASK ")) {
+        const question = textBody.slice(3).trim();
+        if (!question) {
+          await space.send("Text ASK and then your question, like: ASK how do I pass a float serve?");
+          continue;
+        }
         const ctx = await loadPlayerContext(db, contact.player_id);
         const reply = ctx
-          ? await answerPlayerQuestion(ctx, textBody, await rotationText(contact))
+          ? await answerPlayerQuestion(ctx, question, await rotationText(contact))
           : "I couldn't find your player data yet. Ask your coach.";
         await space.send(reply);
+      } else {
+        await postToCoachChat(contact, textBody);
+        await space.send("Sent to your coach in SPIKE chat. Text HELP for commands.");
       }
     } catch (e) {
       console.error("Inbound message failed:", e instanceof Error ? e.message : e);
@@ -160,6 +186,20 @@ async function textRotation(sessionId: string) {
   }
 }
 
+// Coach posts from the web go out by text: team chat to the whole team, a private chat to that player.
+async function textCoachMessage(row: ChatMessage & { texted_at: string | null }) {
+  if (row.via !== "web" || row.sender_role !== "coach" || row.texted_at) return;
+  const contacts = (await optedInContacts(row.thread_player_id ? [row.thread_player_id] : undefined)).filter(
+    (c) => c.players?.team_id === row.team_id,
+  );
+  const text =
+    row.thread_player_id === null
+      ? `${row.sender_name} (team chat): ${row.body}`
+      : `${row.sender_name}: ${row.body}\nReply here to answer your coach.`;
+  for (const contact of contacts) await textPhone(contact.phone, text);
+  await db.from("messages").update({ texted_at: new Date().toISOString() }).eq("message_id", row.message_id);
+}
+
 db.channel("spike-messaging")
   .on("postgres_changes", { event: "*", schema: "public", table: "live_rotation" }, (payload) => {
     const sessionId = (payload.new as Partial<LiveRotationRow>).session_id;
@@ -181,6 +221,11 @@ db.channel("spike-messaging")
     const exercises = await getExercises(db);
     await textPhone(contact.phone, planAsText(row.plan, exercises, contact.players?.name ?? "Player"));
     await db.from("training_plans").update({ texted_at: new Date().toISOString() }).eq("plan_id", row.plan_id);
+  })
+  .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+    textCoachMessage(payload.new as ChatMessage & { texted_at: string | null }).catch((e) =>
+      console.error("Could not text a coach message:", e instanceof Error ? e.message : e),
+    );
   })
   .subscribe((status) => console.log(`Supabase Realtime: ${status}`));
 

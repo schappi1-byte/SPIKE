@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  ChatMessage,
   Exercise,
   LiveRotationRow,
   ResearchMatch,
@@ -71,6 +72,20 @@ export async function getLatestPlan(db: SupabaseClient, playerId: string): Promi
   return unwrap<SavedPlan | null>(
     await db.from("training_plans").select("*").eq("player_id", playerId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   );
+}
+
+const MESSAGE_COLUMNS = "message_id, team_id, thread_player_id, sender_user_id, sender_name, sender_role, body, via, created_at";
+const MESSAGE_PAGE = 200;
+
+/** Messages in one chat, oldest first. `thread` null is the team chat. With `after`, only newer messages. */
+export async function getMessages(db: SupabaseClient, teamId: string, thread: string | null, after = 0): Promise<ChatMessage[]> {
+  let query = db.from("messages").select(MESSAGE_COLUMNS).eq("team_id", teamId);
+  query = thread === null ? query.is("thread_player_id", null) : query.eq("thread_player_id", thread);
+  if (after > 0) {
+    return unwrap<ChatMessage[]>(await query.gt("message_id", after).order("message_id").limit(MESSAGE_PAGE));
+  }
+  const latest = unwrap<ChatMessage[]>(await query.order("message_id", { ascending: false }).limit(MESSAGE_PAGE));
+  return latest.reverse();
 }
 
 /** Most recently updated live session for a team, or a stable default for the first push. */
