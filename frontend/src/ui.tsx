@@ -13,7 +13,6 @@ const paths: Record<string, ReactNode> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1" /></>,
   team: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
-  zap: <path d="M13 2 4 14h7l-1 8 9-12h-7Z" />,
 };
 
 export function Icon({ name, className = "size-5" }: { name: string; className?: string }) {
@@ -21,17 +20,6 @@ export function Icon({ name, className = "size-5" }: { name: string; className?:
     <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       {paths[name]}
     </svg>
-  );
-}
-
-export function Logo({ light = false, onClick }: { light?: boolean; onClick?: () => void }) {
-  return (
-    <button className="flex items-center gap-2.5" onClick={onClick} type="button">
-      <span className="grid size-9 place-items-center rounded-xl bg-brand text-navy shadow-lg shadow-brand/20">
-        <Icon name="zap" className="size-5 fill-current" />
-      </span>
-      <span className={`text-xl font-bold tracking-[0.16em] ${light ? "text-white" : "text-navy"}`}>SPIKE</span>
-    </button>
   );
 }
 
@@ -201,8 +189,7 @@ export function Shell({
   return (
     <div className={dock ? "min-h-screen bg-canvas" : "min-h-screen bg-canvas lg:grid lg:grid-cols-[240px_1fr]"}>
       {!dock && <aside className="hidden bg-navy text-white lg:flex lg:min-h-screen lg:flex-col lg:px-4 lg:py-6">
-        <Logo light onClick={onExit} />
-        <p className="mt-8 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
+        <p className="px-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
         <nav className="mt-3 flex flex-1 flex-col gap-1" aria-label={label}>
           {sections.map((item) => (
             <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} onClick={() => onSection(item.id)} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold ${section === item.id ? "bg-white/10 text-brand-light" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
@@ -216,9 +203,8 @@ export function Shell({
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-            <div className={dock ? "" : "lg:hidden"}><Logo onClick={onExit} /></div>
             {!dock && <p className="hidden text-sm text-slate-500 lg:block">{label}</p>}
-            <button type="button" onClick={onExit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Exit</button>
+            <button type="button" onClick={onExit} className="ml-auto rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Exit</button>
           </div>
         </header>
         {warning && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:mx-8" role="status">{warning}</p>}

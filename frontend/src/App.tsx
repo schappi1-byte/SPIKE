@@ -3,7 +3,7 @@ import Coach from "./Coach";
 import Landing from "./Landing";
 import PlayerDash from "./PlayerDash";
 import { useStore } from "./store";
-import { Avatar, Icon, Logo } from "./ui";
+import { Avatar, Icon } from "./ui";
 
 type CoachSection = "overview" | "evaluate" | "lineup" | "system";
 type PlayerSection = "overview" | "analyze" | "training" | "system";
@@ -67,8 +67,7 @@ export default function App() {
     return (
       <main className="min-h-screen bg-canvas">
         <header className="border-b border-slate-200/80 bg-white">
-          <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5">
-            <Logo onClick={exit} />
+          <div className="mx-auto flex h-16 max-w-5xl items-center justify-end px-5">
             <button type="button" onClick={exit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600">Exit</button>
           </div>
         </header>

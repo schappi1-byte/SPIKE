@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=PT+Serif:ital,wght@1,700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -10,6 +10,7 @@
   --color-brand-ink: color-mix(in srgb, var(--color-carolina) 70%, var(--color-navy));
   --color-canvas: color-mix(in srgb, var(--color-carolina) 6%, var(--color-white));
   --font-sans: "DM Sans", sans-serif;
+  --font-display: "PT Serif", serif;
 
   /* Default Tailwind palettes used by the app, remapped onto the UNC palette. */
   --color-slate-50: color-mix(in srgb, var(--color-carolina) 6%, var(--color-white));

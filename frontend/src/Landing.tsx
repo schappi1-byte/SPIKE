@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 function Button({ children, onClick, secondary = false }: { children: ReactNode; onClick: () => void; secondary?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className={`w-full rounded-xl px-6 py-3.5 text-sm font-semibold transition duration-200 active:scale-[0.98] sm:w-44 ${secondary ? "border border-white/60 bg-white/10 text-white backdrop-blur hover:bg-white/20" : "bg-brand text-navy shadow-lg shadow-brand/30 hover:bg-brand-light"}`}>
+    <button type="button" onClick={onClick} className={`w-full rounded-xl px-6 py-3.5 text-sm font-medium transition duration-200 active:scale-[0.98] sm:w-44 ${secondary ? "border border-white/60 bg-white/10 text-white backdrop-blur hover:bg-white/20" : "bg-brand text-navy shadow-lg shadow-brand/30 hover:bg-brand-light"}`}>
       {children}
     </button>
   );
@@ -10,7 +10,7 @@ function Button({ children, onClick, secondary = false }: { children: ReactNode;
 
 function Volleyball() {
   return (
-    <svg className="pointer-events-none absolute left-[calc(50%+0.018em)] top-[0.08em] h-[0.21em] w-[0.21em] -translate-x-1/2" viewBox="0 0 36 36" aria-hidden="true">
+    <svg className="pointer-events-none absolute left-[calc(50%+0.1em)] top-[0.06em] h-[0.22em] w-[0.22em] -translate-x-1/2" viewBox="0 0 36 36" aria-hidden="true">
       <defs>
         <radialGradient id="spike-shade" cx="34%" cy="30%" r="72%">
           <stop offset="0%" className="[stop-color:var(--color-white)]" />
@@ -28,10 +28,11 @@ export default function Landing({ onCoach, onPlayer }: { onCoach: () => void; on
   return (
     <main className="aurora grid min-h-dvh place-items-center px-6 text-white">
       <div className="flex w-full max-w-3xl flex-col items-center text-center">
-        <h1 className="text-7xl font-bold tracking-[-0.04em] sm:text-8xl lg:text-9xl">
-          SP<span className="relative inline-block">i<Volleyball /></span>KE
+        <h1 aria-label="SPiKE" className="font-display text-7xl font-bold italic tracking-[-0.02em] sm:text-8xl lg:text-9xl">
+          SP<span className="relative inline-block" aria-hidden="true">ı<Volleyball /></span>KE
         </h1>
-        <p className="mt-4 text-lg font-medium text-white sm:text-xl">Smarter Coaching. Stronger Players.</p>
+        <p className="mt-5 text-xl text-white sm:text-2xl">Smarter Coaching. Stronger Players.</p>
+        <p className="mt-3 max-w-md text-sm leading-6 text-white/80 sm:text-base">AI-powered volleyball coaching, performance analytics, and personalized training in one platform.</p>
         <div className="mt-8 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
           <Button onClick={onCoach}>Coach</Button>
           <Button onClick={onPlayer} secondary>Player</Button>
