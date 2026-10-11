@@ -147,3 +147,10 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# SPIKE frontend
+.figma/design-context/
+.plugins/
+.opencode-skills/
+.claude-replay.*
+.tmp-*
