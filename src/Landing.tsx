@@ -1,42 +1,36 @@
 import type { ReactNode } from "react";
-import { Icon, Logo } from "./ui";
 
-function Button({ children, onClick, secondary = false, className = "" }: { children: ReactNode; onClick: () => void; secondary?: boolean; className?: string }) {
+function Button({ children, onClick, secondary = false }: { children: ReactNode; onClick: () => void; secondary?: boolean }) {
   return (
-    <button type="button" onClick={onClick} className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-semibold transition active:scale-[0.98] ${secondary ? "border border-white/15 bg-white/5 text-white hover:border-white/40" : "bg-brand text-white shadow-lg shadow-blue-500/20 hover:bg-brand-dark"} ${className}`}>
+    <button type="button" onClick={onClick} className={`w-full rounded-xl px-6 py-3.5 text-sm font-semibold transition duration-200 active:scale-[0.98] sm:w-44 ${secondary ? "bg-white text-navy hover:bg-blue-50" : "bg-brand text-white shadow-lg shadow-blue-500/25 hover:bg-brand-dark"}`}>
       {children}
     </button>
   );
 }
 
+function Volleyball() {
+  return (
+    <svg className="pointer-events-none absolute left-[calc(50%-0.033em)] top-[0.06em] h-[0.23em] w-[0.23em] -translate-x-1/2" viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="13.2" fill="#f4f7fb" stroke="#3478f6" strokeWidth="1.7" />
+      <path d="M16 2.8c3.2 4.2 4.8 8.6 4.8 13.2S19.2 25 16 29.2C12.8 25 11.2 20.6 11.2 16S12.8 7 16 2.8Z" fill="none" stroke="#3478f6" strokeWidth="1.4" />
+      <path d="M4.2 11.2c4.6 2.2 9.4 2.6 14.2.4M13.6 20.4c4.8-2.2 9.6-1.8 14.2.4" fill="none" stroke="#3478f6" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function Landing({ onCoach, onPlayer }: { onCoach: () => void; onPlayer: () => void }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-navy text-white">
-      <div className="absolute -right-32 -top-32 size-[30rem] rounded-full bg-brand/15 blur-3xl" />
-      <div className="absolute -bottom-52 -left-28 size-[34rem] rounded-full bg-blue-700/15 blur-3xl" />
-      <nav className="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-6 lg:px-8">
-        <Logo light />
-        <span className="text-sm text-slate-400">Player development, elevated.</span>
-      </nav>
-      <section className="relative mx-auto flex min-h-[calc(100vh-88px)] max-w-5xl flex-col items-center justify-center px-6 pb-20 text-center">
-        <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-blue-200">
-          <span className="size-1.5 rounded-full bg-brand" />
-          Built for better volleyball
-        </div>
-        <h1 className="max-w-4xl text-5xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
-          Smarter Coaching.
-          <br />
-          <span className="text-brand">Stronger Players.</span>
+    <main className="grid min-h-dvh place-items-center bg-navy px-6 text-white">
+      <div className="flex w-full max-w-3xl flex-col items-center text-center">
+        <h1 className="text-7xl font-bold tracking-[-0.04em] sm:text-8xl lg:text-9xl">
+          SP<span className="relative inline-block">i<Volleyball /></span>KE
         </h1>
-        <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">One focused platform to track progress, sharpen performance, and bring every player closer to their best.</p>
-        <div className="mt-10 grid w-full max-w-lg gap-3 sm:grid-cols-2">
-          <Button onClick={onCoach} className="py-4">Coach <Icon name="arrow" /></Button>
-          <Button onClick={onPlayer} secondary className="py-4">Player <Icon name="arrow" /></Button>
+        <p className="mt-4 text-lg font-medium text-slate-300 sm:text-xl">Smarter Coaching. Stronger Players.</p>
+        <div className="mt-8 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+          <Button onClick={onCoach}>Coach</Button>
+          <Button onClick={onPlayer} secondary>Player</Button>
         </div>
-        <div className="mt-14 flex items-center gap-6 text-xs font-medium uppercase tracking-widest text-slate-500">
-          <span>Track</span><span className="size-1 rounded-full bg-slate-600" /><span>Develop</span><span className="size-1 rounded-full bg-slate-600" /><span>Perform</span>
-        </div>
-      </section>
+      </div>
     </main>
   );
 }

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { loadSavedAnalysis } from "./analysis";
 import { formatClock, formatWhen, latestAssessment, type Athlete } from "./model";
-import Trainer from "./Trainer";
+
+const Trainer = lazy(() => import("./Trainer"));
 import {
   exerciseSeconds,
   finishEffort,
@@ -61,6 +62,9 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
     return (
       <div className="mx-auto max-w-3xl">
         <Header />
+        <section className="card mt-4 overflow-hidden">
+          <TrainerFrame move="rest" paused={false} />
+        </section>
         <p className="mt-3 text-sm leading-6 text-slate-500">{analysis ? "A Gemini analysis is saved and will be sent with your ratings and coach notes." : "No Gemini analysis is saved yet. The plan will use your ratings, history, and coach feedback."}</p>
         <button type="button" onClick={generate} disabled={loading} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60">{loading ? "Building your week…" : "Create my week"}</button>
         {error && <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">{error}</p>}
@@ -84,6 +88,9 @@ export default function TrainingBoard({ athlete }: { athlete: Athlete }) {
   return (
     <div className="mx-auto max-w-5xl">
       <Header />
+      <section className="card mt-4 overflow-hidden">
+        <TrainerFrame move="rest" paused={false} />
+      </section>
       <section className="card mt-4 p-6">
         <p className="text-sm font-semibold text-brand">Primary goal</p>
         <h2 className="mt-1 text-2xl font-bold tracking-tight">{saved.plan.goal}</h2>
@@ -166,8 +173,9 @@ function Workout({ saved, onChange }: { saved: SavedPlan; onChange: (next: Saved
 
   if (session.phase === "completed") {
     return (
-      <div className="mx-auto max-w-xl card p-6 text-center">
-        <h1 className="text-2xl font-bold">Workout complete</h1>
+      <div className="mx-auto max-w-xl card overflow-hidden p-6 text-center">
+        <TrainerFrame move="rest" paused={false} />
+        <h1 className="mt-4 text-2xl font-bold">Workout complete</h1>
         <p className="mt-2 text-sm text-slate-500">{day.name} is checked off. This records the sets you confirmed. It does not measure your repetitions.</p>
         <button type="button" onClick={() => { keep.current = false; onChange({ ...saved, session: null }); }} className="mt-5 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white">Back to the week</button>
       </div>
@@ -181,7 +189,7 @@ function Workout({ saved, onChange }: { saved: SavedPlan; onChange: (next: Saved
   return (
     <div className="mx-auto grid max-w-5xl items-start gap-4 md:grid-cols-[1.1fr_0.9fr]">
       <section className="card px-3 py-2 md:px-4 md:py-6">
-        <Trainer move={move} paused={session.phase === "paused" || waiting} />
+        <TrainerFrame move={move} paused={session.phase === "paused" || waiting} />
         {exercise.animation === "none" && session.phase === "exercising" && <p className="px-4 text-center text-sm text-slate-500">This exercise has no matching animation. Follow the written instructions.</p>}
       </section>
       <section className="card p-4 md:p-5">
@@ -222,6 +230,14 @@ function labelFor(phase: Session["phase"], waiting: boolean): string {
   if (phase === "resting") return "Rest";
   if (phase === "exercising") return "Go";
   return "";
+}
+
+function TrainerFrame({ move, paused }: { move: Parameters<typeof Trainer>[0]["move"]; paused: boolean }) {
+  return (
+    <Suspense fallback={<div className="h-64 bg-[#0c1422] sm:h-80 md:h-[42vh] md:max-h-[480px]" />}>
+      <Trainer move={move} paused={paused} />
+    </Suspense>
+  );
 }
 
 function Header() {
