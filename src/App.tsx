@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Coach from "./Coach";
 import Landing from "./Landing";
 import PlayerDash from "./PlayerDash";
@@ -6,16 +6,37 @@ import { useStore } from "./store";
 import { Avatar, Icon, Logo } from "./ui";
 
 type CoachSection = "overview" | "evaluate" | "lineup" | "system";
-type PlayerSection = "overview" | "training" | "system";
+type PlayerSection = "overview" | "analyze" | "training" | "system";
 type View = "landing" | "pick" | "coach" | "player";
+
+const PLAYER_SECTIONS: PlayerSection[] = ["overview", "analyze", "training", "system"];
+
+function readPlayerHash(athleteIds: number[]): { athleteId: number; section: PlayerSection } | null {
+  const match = window.location.hash.match(/^#\/player\/(\d+)\/(overview|analyze|training|system)$/);
+  if (!match) return null;
+  const athleteId = Number(match[1]);
+  const section = match[2] as PlayerSection;
+  if (!athleteIds.includes(athleteId) || !PLAYER_SECTIONS.includes(section)) return null;
+  return { athleteId, section };
+}
 
 export default function App() {
   const { athletes } = useStore();
-  const [view, setView] = useState<View>("landing");
-  const [athleteId, setAthleteId] = useState(athletes[0]?.id ?? 1);
+  const restored = readPlayerHash(athletes.map((athlete) => athlete.id));
+  const [view, setView] = useState<View>(restored ? "player" : "landing");
+  const [athleteId, setAthleteId] = useState(restored?.athleteId ?? athletes[0]?.id ?? 1);
   const [coachSection, setCoachSection] = useState<CoachSection>("overview");
-  const [playerSection, setPlayerSection] = useState<PlayerSection>("overview");
+  const [playerSection, setPlayerSection] = useState<PlayerSection>(restored?.section ?? "overview");
   const exit = () => setView("landing");
+
+  useEffect(() => {
+    if (view !== "player") {
+      if (window.location.hash.startsWith("#/player/")) window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return;
+    }
+    const next = `#/player/${athleteId}/${playerSection}`;
+    if (window.location.hash !== next) window.history.replaceState(null, "", next);
+  }, [view, athleteId, playerSection]);
 
   if (view === "coach") {
     return (

@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { adherence, formatClock, formatWhen, latestAssessment, SKILL_LABEL, trainingPlan, trendDelta, type Athlete, type Exercise } from "./model";
+import { adherence, formatWhen, latestAssessment, SKILL_LABEL, trainingPlan, trendDelta, type Athlete } from "./model";
 import { useStore } from "./store";
+import Analyze from "./Analyze";
+import TrainingBoard from "./Training";
 import { Avatar, RadarChart, Shell, SkillBars, SystemPanel, TrendChart, ratingOf } from "./ui";
 
-type Section = "overview" | "training" | "system";
+type Section = "overview" | "analyze" | "training" | "system";
 
 const sections = [
   { id: "overview", label: "Overview", icon: "chart" },
+  { id: "analyze", label: "Analyze", icon: "search" },
   { id: "training", label: "Training", icon: "target" },
   { id: "system", label: "System", icon: "clock" },
 ];
@@ -27,10 +29,11 @@ export default function PlayerDash({
   const { athletes, loadWarning } = useStore();
   const athlete = athletes.find((item) => item.id === athleteId) ?? athletes[0];
   return (
-    <Shell label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
+    <Shell dock label="Player" section={section} sections={sections} onSection={(id) => onSection(id as Section)} onExit={onExit} warning={loadWarning}>
       <button type="button" onClick={onSwitch} className="mb-6 text-sm font-semibold text-slate-500 hover:text-brand">Switch player</button>
       {section === "overview" && <Overview athlete={athlete} />}
-      {section === "training" && <Training athlete={athlete} />}
+      {section === "analyze" && <Analyze athlete={athlete} onTraining={() => onSection("training")} />}
+      {section === "training" && <TrainingBoard athlete={athlete} />}
       {section === "system" && <SystemPanel />}
     </Shell>
   );
@@ -81,6 +84,17 @@ function Overview({ athlete }: { athlete: Athlete }) {
             <Note label="To improve" text={latest.weaknesses} />
             <Note label="Priority" text={latest.priorities} />
           </div>
+          {athlete.assessments.length > 1 && (
+            <div className="mt-5 space-y-3 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Feedback history</p>
+              {[...athlete.assessments].slice(0, -1).reverse().map((item) => (
+                <div key={item.id}>
+                  <p className="text-xs text-slate-400">{formatWhen(item.recordedAt)}</p>
+                  <p className="mt-1 text-sm text-slate-600">{item.priorities || item.weaknesses || "No note saved."}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         <section className="card p-6">
           <p className="text-sm font-semibold text-brand">What should I work on?</p>
@@ -119,94 +133,3 @@ function Note({ label, text }: { label: string; text: string }) {
   );
 }
 
-function Training({ athlete }: { athlete: Athlete }) {
-  const { completeExercise } = useStore();
-  const plan = trainingPlan(athlete);
-  const planKey = plan.map((item) => item.id).join("|");
-  const [selectedId, setSelectedId] = useState(plan[0]?.id ?? "");
-  const selected = plan.find((item) => item.id === selectedId) ?? plan[0];
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!plan.some((item) => item.id === selectedId) && plan[0]) setSelectedId(plan[0].id);
-  }, [planKey]);
-
-  if (!selected) return <p className="text-sm text-slate-500">No exercises for this evaluation.</p>;
-
-  return (
-    <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="card p-4">
-        <h1 className="px-2 py-2 text-xl font-bold tracking-tight">Assigned work</h1>
-        <div className="space-y-2">
-          {plan.map((item) => (
-            <button key={item.id} type="button" onClick={() => { setSelectedId(item.id); setMessage(null); }} aria-pressed={item.id === selected.id} className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-left ${item.id === selected.id ? "bg-blue-50" : "hover:bg-slate-50"}`}>
-              <span>
-                <span className="block text-sm font-semibold">{item.title}</span>
-                <span className="block text-xs text-slate-500">{SKILL_LABEL[item.skill]} · {item.detail}</span>
-              </span>
-              <span className={`text-xs font-semibold ${item.done ? "text-emerald-700" : "text-slate-400"}`}>{item.done ? "Done" : "Open"}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-      <Timer exercise={selected} onComplete={() => { completeExercise(athlete.id, selected); setMessage(`${selected.title} marked complete.`); }} message={message} />
-    </div>
-  );
-}
-
-function Timer({ exercise, onComplete, message }: { exercise: Exercise; onComplete: () => void; message: string | null }) {
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const accumulated = useRef(0);
-  const startedAt = useRef<number | null>(null);
-
-  useEffect(() => {
-    accumulated.current = 0;
-    startedAt.current = null;
-    setRunning(false);
-    setElapsed(0);
-  }, [exercise.id]);
-
-  useEffect(() => {
-    if (!running) return;
-    const id = window.setInterval(() => {
-      const started = startedAt.current ?? Date.now();
-      setElapsed(accumulated.current + (Date.now() - started) / 1000);
-    }, 200);
-    return () => window.clearInterval(id);
-  }, [running]);
-
-  function toggle() {
-    if (running) {
-      accumulated.current += (Date.now() - (startedAt.current ?? Date.now())) / 1000;
-      startedAt.current = null;
-      setElapsed(accumulated.current);
-      setRunning(false);
-      return;
-    }
-    startedAt.current = Date.now();
-    setRunning(true);
-  }
-
-  function reset() {
-    accumulated.current = 0;
-    startedAt.current = running ? Date.now() : null;
-    setElapsed(0);
-  }
-
-  return (
-    <section className="card p-6">
-      <p className="text-sm font-semibold text-brand">{SKILL_LABEL[exercise.skill]}</p>
-      <h2 className="mt-1 text-2xl font-bold tracking-tight">{exercise.title}</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{exercise.detail}</p>
-      <p className="mt-8 text-center text-6xl font-bold tabular-nums tracking-tight" aria-live="polite">{formatClock(elapsed)}</p>
-      <p className="mt-2 text-center text-sm text-slate-500">Target {exercise.minutes}:00 · elapsed time keeps running only while started</p>
-      <div className="mt-6 flex flex-wrap justify-center gap-2">
-        <button type="button" onClick={toggle} className="rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-white hover:bg-brand-dark">{running ? "Pause" : "Start"}</button>
-        <button type="button" onClick={reset} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600">Reset</button>
-        <button type="button" disabled={exercise.done} onClick={() => { setRunning(false); onComplete(); }} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-navy disabled:opacity-40">{exercise.done ? "Completed" : "Mark complete"}</button>
-      </div>
-      {message && <p className="mt-4 text-center text-sm font-medium text-emerald-700" role="status">{message}</p>}
-    </section>
-  );
-}

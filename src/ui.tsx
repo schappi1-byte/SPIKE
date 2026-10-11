@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { SKILL_KEYS, SKILL_LABEL, historyPoints, overall, type Athlete, type Skills } from "./model";
 import { SYSTEM } from "./system";
 
@@ -185,6 +186,7 @@ export function Shell({
   onSection,
   onExit,
   warning,
+  dock = false,
   children,
 }: {
   label: string;
@@ -193,11 +195,12 @@ export function Shell({
   onSection: (id: string) => void;
   onExit: () => void;
   warning: string | null;
+  dock?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[240px_1fr]">
-      <aside className="hidden bg-navy text-white lg:flex lg:min-h-screen lg:flex-col lg:px-4 lg:py-6">
+    <div className={dock ? "min-h-screen bg-canvas" : "min-h-screen bg-canvas lg:grid lg:grid-cols-[240px_1fr]"}>
+      {!dock && <aside className="hidden bg-navy text-white lg:flex lg:min-h-screen lg:flex-col lg:px-4 lg:py-6">
         <Logo light onClick={onExit} />
         <p className="mt-8 px-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</p>
         <nav className="mt-3 flex flex-1 flex-col gap-1" aria-label={label}>
@@ -209,25 +212,38 @@ export function Shell({
           ))}
         </nav>
         <button type="button" onClick={onExit} className="mt-4 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white">Exit</button>
-      </aside>
+      </aside>}
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur">
           <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-            <div className="lg:hidden"><Logo onClick={onExit} /></div>
-            <p className="hidden text-sm text-slate-500 lg:block">{label}</p>
+            <div className={dock ? "" : "lg:hidden"}><Logo onClick={onExit} /></div>
+            {!dock && <p className="hidden text-sm text-slate-500 lg:block">{label}</p>}
             <button type="button" onClick={onExit} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand">Exit</button>
           </div>
         </header>
         {warning && <p className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:mx-8" role="status">{warning}</p>}
-        <main className="rise px-4 py-6 pb-24 lg:px-8 lg:pb-10">{children}</main>
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white lg:hidden" aria-label={label}>
-          {sections.map((item) => (
-            <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} onClick={() => onSection(item.id)} className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${section === item.id ? "text-brand" : "text-slate-500"}`}>
-              <Icon name={item.icon} className="size-4" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
+        <main className={`rise px-4 py-6 pb-24 lg:px-8 ${dock ? "" : "lg:pb-10"}`}>{children}</main>
+        {!dock && (
+          <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white lg:hidden" aria-label={label}>
+            {sections.map((item) => (
+              <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} onClick={() => onSection(item.id)} className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${section === item.id ? "text-brand" : "text-slate-500"}`}>
+                <Icon name={item.icon} className="size-4" />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        )}
+        {dock && createPortal(
+          <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(16,27,48,0.06)]" aria-label={label}>
+            {sections.map((item) => (
+              <button key={item.id} type="button" aria-current={section === item.id ? "page" : undefined} onClick={() => onSection(item.id)} className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${section === item.id ? "text-brand" : "text-slate-500"}`}>
+                <Icon name={item.icon} className="size-4" />
+                {item.label}
+              </button>
+            ))}
+          </nav>,
+          document.body,
+        )}
       </div>
     </div>
   );

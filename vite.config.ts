@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 import siteConfiguration from './.figma/make/site.json'
+import { geminiPlugin } from './server/plugin.ts'
 
 
 // Vite config — https://vitejs.dev/config/
@@ -24,6 +25,7 @@ react(),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
+      geminiPlugin(),
     ],
     resolve: {
       alias: {
