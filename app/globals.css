@@ -1,16 +1,27 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=PT+Serif:ital,wght@1,700&display=swap");
+
+/* The same UNC palette and type as the dashboards in frontend/src/index.css. */
 :root {
-  --bg: #0b1220;
-  --panel: #131c2e;
-  --panel-2: #1a2540;
-  --line: #26334f;
-  --text: #e7ecf5;
-  --muted: #94a3c0;
-  --accent: #7bafd4;
-  --accent-strong: #4b9cd3;
-  --good: #4ade80;
-  --warn: #fbbf24;
-  --bad: #f87171;
-  color-scheme: dark;
+  --carolina: #4b9cd3;
+  --navy: #13294b;
+  --white: #ffffff;
+  --bg: color-mix(in srgb, var(--carolina) 6%, var(--white));
+  --panel: var(--white);
+  --panel-2: color-mix(in srgb, var(--carolina) 10%, var(--white));
+  --line-soft: color-mix(in srgb, var(--carolina) 14%, var(--white));
+  --line: color-mix(in srgb, var(--carolina) 28%, var(--white));
+  --line-strong: color-mix(in srgb, var(--carolina) 40%, var(--white));
+  --text: var(--navy);
+  --muted: color-mix(in srgb, var(--navy) 72%, var(--white));
+  --accent: color-mix(in srgb, var(--carolina) 70%, var(--navy));
+  --accent-strong: var(--carolina);
+  --good: color-mix(in srgb, var(--carolina) 60%, var(--navy));
+  --warn: color-mix(in srgb, var(--navy) 84%, var(--white));
+  --bad: var(--navy);
+  --shadow: 0 10px 15px -3px color-mix(in srgb, var(--navy) 5%, transparent), 0 4px 6px -4px color-mix(in srgb, var(--navy) 5%, transparent);
+  --font-sans: "DM Sans", sans-serif;
+  --font-display: "PT Serif", serif;
+  color-scheme: light;
 }
 
 * {
@@ -19,55 +30,141 @@
 
 body {
   margin: 0;
+  min-width: 320px;
   background: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
 }
 
 a {
   color: var(--accent);
+  font-weight: 600;
   text-decoration: none;
 }
 
 a:hover {
-  text-decoration: underline;
+  color: var(--navy);
 }
 
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--carolina);
+  outline-offset: 2px;
+}
+
+code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--panel-2);
+  font-size: 0.9em;
+}
+
+/* Wordmark: "SPiKE" with a volleyball dotting the i, as on the landing page. */
+.wordmark {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--navy);
+}
+
+.wordmark:hover {
+  color: var(--navy);
+}
+
+.wordmark .dot {
+  position: relative;
+  display: inline-block;
+}
+
+.wordmark svg {
+  position: absolute;
+  left: calc(50% + 0.1em);
+  top: 0.06em;
+  width: 0.22em;
+  height: 0.22em;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.wordmark .seams {
+  fill: color-mix(in srgb, var(--navy) 70%, transparent);
+}
+
+.wordmark.large {
+  font-size: clamp(64px, 12vw, 104px);
+  color: var(--white);
+}
+
+/* Header, matching the dashboard header. */
 header.site {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 16px 32px;
+  justify-content: space-between;
+  gap: 16px;
+  height: 64px;
+  padding: 0 32px;
   border-bottom: 1px solid var(--line);
-  background: var(--panel);
+  background: color-mix(in srgb, var(--white) 90%, transparent);
+  backdrop-filter: blur(8px);
 }
 
 header.site .brand {
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  color: var(--text);
-}
-
-header.site nav {
   display: flex;
-  gap: 18px;
+  align-items: center;
+  gap: 12px;
 }
 
-main {
+header.site .account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+header.site .account .who {
+  font-weight: 600;
+  color: var(--muted);
+}
+
+header.site .account form {
+  margin: 0;
+}
+
+main.page {
   max-width: 1120px;
   margin: 0 auto;
   padding: 32px;
+  animation: rise 180ms ease;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 h1 {
   margin: 0 0 4px;
-  font-size: 28px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 h2 {
   margin: 32px 0 12px;
   font-size: 18px;
+  font-weight: 700;
 }
 
 .muted {
@@ -77,8 +174,9 @@ h2 {
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 20px;
+  box-shadow: var(--shadow);
 }
 
 .grid {
@@ -114,7 +212,7 @@ th,
 td {
   padding: 10px 12px;
   text-align: left;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 th {
@@ -133,10 +231,10 @@ th.num {
 
 .pill {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
+  background: var(--line-soft);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -152,46 +250,94 @@ th.num {
 
 .rating-bar .track {
   height: 8px;
-  background: var(--panel-2);
+  background: var(--line-soft);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .rating-bar .fill {
   height: 100%;
-  background: var(--accent-strong);
+  background: var(--carolina);
 }
 
+/* Buttons: Carolina blue primary, outlined secondary, as on the dashboards. */
 button,
 .button {
   appearance: none;
-  border: 1px solid var(--accent-strong);
-  background: var(--accent-strong);
-  color: #04121f;
-  font-weight: 700;
-  padding: 10px 16px;
-  border-radius: 8px;
-  cursor: pointer;
+  display: inline-block;
+  border: 1px solid var(--carolina);
+  background: var(--carolina);
+  color: var(--navy);
+  font: inherit;
   font-size: 14px;
+  font-weight: 600;
+  padding: 11px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--carolina) 30%, transparent);
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+button:hover,
+.button:hover {
+  background: color-mix(in srgb, var(--carolina) 80%, var(--white));
+  color: var(--navy);
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 button.secondary {
-  background: transparent;
+  border-color: var(--line);
+  background: var(--white);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+button.secondary:hover {
+  border-color: var(--carolina);
   color: var(--accent);
+}
+
+button.small,
+.button.small {
+  padding: 7px 14px;
+  border-radius: 10px;
 }
 
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
-input {
-  background: var(--panel-2);
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  box-shadow: none;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  background: var(--white);
   border: 1px solid var(--line);
   color: var(--text);
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font: inherit;
   font-size: 14px;
+  font-weight: 400;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--carolina);
 }
 
 .row {
@@ -201,8 +347,24 @@ input {
   flex-wrap: wrap;
 }
 
+.row input,
+.row select {
+  width: auto;
+}
+
+.error,
+.notice {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--navy);
+  font-size: 14px;
+}
+
 .error {
-  color: var(--bad);
+  font-weight: 600;
 }
 
 .court {
@@ -210,15 +372,15 @@ input {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   padding: 16px;
-  background: #c98a4b;
-  border-radius: 12px;
+  border-radius: 16px;
   position: relative;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--carolina) 22%, var(--white)) 0 14px, color-mix(in srgb, var(--carolina) 30%, var(--white)) 14px 15px);
 }
 
 .court .net {
   grid-column: 1 / -1;
   height: 6px;
-  background: #f8fafc;
+  background: var(--navy);
   border-radius: 999px;
   margin-bottom: 4px;
 }
@@ -226,18 +388,20 @@ input {
 .court .attack-line {
   grid-column: 1 / -1;
   height: 2px;
-  background: rgba(255, 255, 255, 0.7);
+  background: color-mix(in srgb, var(--white) 80%, transparent);
 }
 
 .court .slot {
-  background: rgba(11, 18, 32, 0.88);
-  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 12px;
   padding: 12px;
   min-height: 92px;
+  box-shadow: var(--shadow);
 }
 
 .court .slot.highlight {
-  outline: 3px solid var(--warn);
+  outline: 3px solid var(--carolina);
 }
 
 .court .slot .pos {
@@ -252,69 +416,36 @@ input {
   margin-top: 4px;
 }
 
+/* Segmented control. */
 .rotation-tabs {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-wrap: wrap;
   margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--panel-2);
 }
 
 .rotation-tabs button {
-  background: var(--panel-2);
-  color: var(--text);
-  border-color: var(--line);
+  flex: 1;
+  background: transparent;
+  color: var(--muted);
+  border-color: transparent;
+  box-shadow: none;
+  padding: 8px 14px;
+  border-radius: 10px;
 }
 
 .rotation-tabs button.active {
-  background: var(--accent-strong);
-  color: #04121f;
-  border-color: var(--accent-strong);
+  background: var(--white);
+  color: var(--navy);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
 }
 
 .plan li {
   margin-bottom: 10px;
-}
-
-header.site .account {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 14px;
-}
-
-header.site .account form {
-  margin: 0;
-}
-
-button.link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--accent);
-  font-weight: 400;
-}
-
-.button.small {
-  padding: 6px 12px;
-  color: #04121f;
-  text-decoration: none;
-}
-
-select,
-textarea {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-}
-
-.auth-card {
-  max-width: 440px;
-  margin: 24px auto;
 }
 
 .form {
@@ -339,11 +470,100 @@ textarea {
   margin-bottom: 0;
 }
 
+/* Log in and sign up: the landing page backdrop with a white card. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drift {
+  to {
+    transform: translate3d(5%, -4%, 0) rotate(8deg) scale(1.1);
+  }
+}
+
+.aurora {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--navy);
+}
+
+.aurora::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  z-index: -1;
+  background:
+    radial-gradient(38% 42% at 22% 28%, color-mix(in srgb, var(--carolina) 75%, transparent), transparent 70%),
+    radial-gradient(32% 38% at 80% 22%, color-mix(in srgb, var(--carolina) 50%, transparent), transparent 70%),
+    radial-gradient(42% 46% at 68% 82%, color-mix(in srgb, var(--carolina) 58%, transparent), transparent 70%),
+    radial-gradient(24% 26% at 50% 48%, color-mix(in srgb, var(--white) 14%, transparent), transparent 70%),
+    radial-gradient(30% 34% at 18% 85%, color-mix(in srgb, var(--carolina) 28%, transparent), transparent 70%);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+main.auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 48px 20px;
+  text-align: center;
+}
+
+main.auth .tagline {
+  margin: 14px 0 28px;
+  font-size: 18px;
+  color: color-mix(in srgb, var(--white) 88%, transparent);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  border-radius: 24px;
+  background: var(--white);
+  color: var(--navy);
+  text-align: left;
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--navy) 50%, transparent);
+  animation: rise 180ms ease;
+}
+
+.auth-card h1 {
+  font-size: 26px;
+}
+
+.auth-card .panel {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.auth-card .form button[type="submit"] {
+  width: 100%;
+  padding: 13px 18px;
+}
+
+.auth-card .switch {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Chat. */
 .chat {
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 16px;
-  height: calc(100vh - 230px);
+  height: calc(100vh - 260px);
   min-height: 420px;
 }
 
@@ -354,29 +574,29 @@ textarea {
 
 .chat .threads a {
   display: block;
-  padding: 8px 10px;
-  border-radius: 8px;
-  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--muted);
   font-size: 14px;
 }
 
 .chat .threads a:hover {
   background: var(--panel-2);
-  text-decoration: none;
+  color: var(--navy);
 }
 
 .chat .threads a.active {
-  background: var(--accent-strong);
-  color: #04121f;
-  font-weight: 700;
+  background: var(--navy);
+  color: var(--white);
 }
 
 .chat .threads .heading {
   font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--muted);
-  margin: 12px 10px 4px;
+  margin: 14px 12px 4px;
 }
 
 .chat .room {
@@ -398,27 +618,33 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: var(--bg);
 }
 
 .chat .message {
   max-width: 75%;
   align-self: flex-start;
-  background: var(--panel-2);
+  background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 16px 16px 16px 4px;
   padding: 8px 12px;
 }
 
 .chat .message.mine {
   align-self: flex-end;
-  background: #1d3b5c;
-  border-color: #2a5580;
+  background: var(--carolina);
+  border-color: var(--carolina);
+  border-radius: 16px 16px 4px 16px;
 }
 
 .chat .message .meta {
   font-size: 12px;
   color: var(--muted);
   margin-bottom: 2px;
+}
+
+.chat .message.mine .meta {
+  color: color-mix(in srgb, var(--navy) 75%, transparent);
 }
 
 .chat .message .body {
@@ -429,6 +655,7 @@ textarea {
 .chat .composer {
   display: flex;
   gap: 10px;
+  align-items: flex-end;
   padding: 12px 16px;
   border-top: 1px solid var(--line);
 }
@@ -439,6 +666,18 @@ textarea {
 }
 
 @media (max-width: 720px) {
+  header.site {
+    padding: 0 16px;
+  }
+
+  header.site .account .who {
+    display: none;
+  }
+
+  main.page {
+    padding: 20px 16px;
+  }
+
   .chat {
     grid-template-columns: 1fr;
     height: auto;
@@ -450,5 +689,13 @@ textarea {
 
   .chat .room {
     height: 70vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main.page,
+  .auth-card,
+  .aurora::before {
+    animation: none;
   }
 }

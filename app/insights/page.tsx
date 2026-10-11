@@ -1,4 +1,5 @@
 import { SetupNotice } from "@/components/SetupNotice";
+import { coachPage } from "@/backend/lib/auth";
 import { getResearch, getTeamMatches, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { hittingPercentage, matchLine, researchSummary } from "@/lib/insights";
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function InsightsPage() {
   if (!isSupabaseConfigured()) return <SetupNotice />;
+  await coachPage();
 
   const db = publicClient();
   const [team] = await getTeams(db);

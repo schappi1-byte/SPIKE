@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AuthScreen } from "@/components/AuthScreen";
 import { SetupNotice } from "@/components/SetupNotice";
 import { getAccount } from "@/backend/lib/auth";
 import { adminClient, isSupabaseConfigured } from "@/backend/lib/supabase";
@@ -9,7 +10,13 @@ import { LoginForm } from "./LoginForm";
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  if (!isSupabaseConfigured()) return <SetupNotice />;
+  if (!isSupabaseConfigured()) {
+    return (
+      <AuthScreen>
+        <SetupNotice />
+      </AuthScreen>
+    );
+  }
   const { next = "/" } = await searchParams;
   if (await getAccount()) redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/");
 
@@ -18,19 +25,19 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const accounts = (data ?? []) as { username: string; display_name: string; role: Role }[];
 
   return (
-    <div className="auth-card">
+    <AuthScreen>
       <h1>Log in</h1>
       <p className="muted">Pick your name and enter your passcode.</p>
       {accounts.length === 0 ? (
-        <p className="panel">
+        <p className="notice">
           Nobody has signed up yet. <Link href="/signup">Sign up</Link> first.
         </p>
       ) : (
         <LoginForm accounts={accounts} next={next} />
       )}
-      <p className="muted">
+      <p className="muted switch">
         New here? <Link href="/signup">Sign up</Link>
       </p>
-    </div>
+    </AuthScreen>
   );
 }

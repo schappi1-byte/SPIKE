@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SetupNotice } from "@/components/SetupNotice";
-import { getAccount } from "@/backend/lib/auth";
+import { coachPage, getAccount } from "@/backend/lib/auth";
 import { getExercises, getLatestPlan, getProgress, getRosterPlayer } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { SKILLS } from "@/lib/types";
@@ -12,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   if (!isSupabaseConfigured()) return <SetupNotice />;
+  await coachPage();
 
   const { id } = await params;
   const db = publicClient();

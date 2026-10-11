@@ -1,5 +1,5 @@
 import { SetupNotice } from "@/components/SetupNotice";
-import { getAccount } from "@/backend/lib/auth";
+import { coachPage, getAccount } from "@/backend/lib/auth";
 import { getRoster, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { optimizeFourTwo } from "@/lib/volleyball";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LineupPage() {
   if (!isSupabaseConfigured()) return <SetupNotice />;
+  await coachPage();
 
   const db = publicClient();
   const [team] = await getTeams(db);

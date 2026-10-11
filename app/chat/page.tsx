@@ -43,6 +43,9 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
+      <a href="/" className="back">
+        ← Back to dashboard
+      </a>
       <h1>Chat</h1>
       <p className="muted">
         {isCoach

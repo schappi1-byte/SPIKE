@@ -1,5 +1,5 @@
 import { SetupNotice } from "@/components/SetupNotice";
-import { getAccount } from "@/backend/lib/auth";
+import { coachPage, getAccount } from "@/backend/lib/auth";
 import { getLiveSession, getRoster, getTeams } from "@/backend/lib/data";
 import { isSupabaseConfigured, publicClient } from "@/backend/lib/supabase";
 import { LiveCourt } from "./LiveCourt";
@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LivePage() {
   if (!isSupabaseConfigured()) return <SetupNotice />;
+  await coachPage();
 
   const db = publicClient();
   const [team] = await getTeams(db);

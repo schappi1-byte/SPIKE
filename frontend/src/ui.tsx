@@ -1,8 +1,33 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { VOLLEYBALL_PATH } from "./brand";
 import { SKILL_KEYS, SKILL_LABEL, historyPoints, overall, type Athlete, type Skills } from "./model";
 import { useStore } from "./store";
 import { SYSTEM } from "./system";
+
+export function Volleyball() {
+  return (
+    <svg className="pointer-events-none absolute left-[calc(50%+0.1em)] top-[0.06em] h-[0.22em] w-[0.22em] -translate-x-1/2" viewBox="0 0 36 36" aria-hidden="true">
+      <defs>
+        <radialGradient id="spike-shade" cx="34%" cy="30%" r="72%">
+          <stop offset="0%" className="[stop-color:var(--color-white)]" />
+          <stop offset="58%" className="[stop-color:var(--color-slate-100)]" />
+          <stop offset="100%" className="[stop-color:var(--color-slate-300)]" />
+        </radialGradient>
+      </defs>
+      <circle cx="18" cy="18" r="18" fill="url(#spike-shade)" />
+      <path className="fill-navy/70" d={VOLLEYBALL_PATH} />
+    </svg>
+  );
+}
+
+function Wordmark() {
+  return (
+    <a href="/" aria-label="SPiKE dashboard" className="font-display text-2xl font-bold italic tracking-[-0.02em] text-navy">
+      SP<span className="relative inline-block" aria-hidden="true">ı<Volleyball /></span>KE
+    </a>
+  );
+}
 
 const paths: Record<string, ReactNode> = {
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
@@ -206,9 +231,12 @@ export function Shell({
       </aside>}
       <div className="min-w-0">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-          <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-            {!dock && <p className="hidden text-sm text-slate-500 lg:block">{label}</p>}
-            <div className="ml-auto flex items-center gap-2">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 lg:px-8">
+            <div className="flex items-center gap-3">
+              <Wordmark />
+              <span className="hidden rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-brand-ink sm:inline">{label}</span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2">
               {back && <button type="button" onClick={back.onClick} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">{back.label}</button>}
               <a href={chat.href} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:text-brand-ink">{chat.label}</a>
               <button type="button" onClick={() => void signOut()} className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:border-brand hover:text-brand-ink">Sign out</button>

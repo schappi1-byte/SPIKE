@@ -1,6 +1,7 @@
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -55,6 +56,13 @@ export const getAccount = cache(async (): Promise<Account | null> => {
   const { data: profile } = await db.from("profiles").select(PROFILE_COLUMNS).eq("user_id", userId).maybeSingle();
   return (profile as Account | null) ?? null;
 });
+
+/** For coach-only pages: anyone else goes back to their own dashboard (or the login screen). */
+export async function coachPage(): Promise<Account> {
+  const account = await getAccount();
+  if (account?.role !== "coach") redirect("/");
+  return account;
+}
 
 /** The signed-in coach, or an error response to return. */
 export async function requireCoach(): Promise<Account | Response> {
