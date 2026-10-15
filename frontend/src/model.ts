@@ -307,13 +307,6 @@ function roleScore(athlete: Athlete, role: string, skill: SkillKey): number {
   return value + bonus;
 }
 
-export function historyPoints(athlete: Athlete): { label: string; value: number; at: string }[] {
-  return athlete.assessments.flatMap((assessment) => {
-    const value = rating(assessment);
-    return value == null ? [] : [{ at: assessment.recordedAt, label: formatWhen(assessment.recordedAt), value }];
-  });
-}
-
 /** Timestamps from the database and the browser can differ in format for the same moment. */
 export function sameTime(a: string, b: string): boolean {
   return a === b || new Date(a).getTime() === new Date(b).getTime();

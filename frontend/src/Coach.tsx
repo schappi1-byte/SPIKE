@@ -23,7 +23,7 @@ import {
   type Skills,
 } from "./model";
 import { useStore, type DraftInput } from "./store";
-import { Avatar, Icon, RadarChart, Shell, SystemPanel, TrendChart, ratingOf } from "./ui";
+import { Avatar, Icon, RadarChart, Shell, SystemPanel, ratingOf } from "./ui";
 
 type Section = "overview" | "evaluate" | "lineup" | "system";
 
@@ -264,10 +264,6 @@ function Evaluate({ athleteId, onAthlete, onOpenPlayer }: { athleteId: number; o
             <h2 className="font-bold">Saved profile</h2>
             <p className="mt-1 text-sm text-slate-500">Overall {rating(latest) ?? "not rated"} · this updates after you save</p>
             <div className="mt-4"><RadarChart skills={latest.skills} unrated={latest.unrated} /></div>
-          </section>
-          <section className="card p-6">
-            <h2 className="font-bold">Rating history</h2>
-            <div className="mt-4"><TrendChart athlete={athlete} /></div>
           </section>
         </div>
       </div>

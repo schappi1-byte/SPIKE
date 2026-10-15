@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { VOLLEYBALL_PATH } from "./brand";
-import { SKILL_KEYS, SKILL_LABEL, historyPoints, latestAssessment, rating, type Athlete, type SkillKey, type Skills } from "./model";
+import { SKILL_KEYS, SKILL_LABEL, latestAssessment, rating, type Athlete, type SkillKey, type Skills } from "./model";
 import { useStore } from "./store";
 import { SYSTEM } from "./system";
 
@@ -113,56 +113,6 @@ export function RadarChart({ skills, unrated = [] }: { skills: Skills; unrated?:
             <tr key={key} className="border-t border-slate-100">
               <td className="py-1.5">{SKILL_LABEL[key]}</td>
               <td className="py-1.5 text-right font-semibold tabular-nums">{unrated.includes(key) ? "Not rated" : skills[key]}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </figure>
-  );
-}
-
-export function TrendChart({ athlete }: { athlete: Athlete }) {
-  const points = historyPoints(athlete);
-  if (points.length === 0) return <p className="text-sm text-slate-500">No rated evaluations yet.</p>;
-  const width = 360;
-  const height = 168;
-  const pad = 28;
-  const coords = points.map((point, index) => {
-    const x = points.length === 1 ? width / 2 : pad + (index * (width - pad * 2)) / (points.length - 1);
-    const y = height - pad - (point.value / 100) * (height - pad * 2);
-    return { ...point, x, y };
-  });
-  const line = coords.map((point) => `${point.x},${point.y}`).join(" ");
-  return (
-    <figure>
-      <svg role="img" aria-label="Rating history" viewBox={`0 0 ${width} ${height}`} className="w-full">
-        {[0, 50, 100].map((tick) => {
-          const y = height - pad - (tick / 100) * (height - pad * 2);
-          return (
-            <g key={tick}>
-              <line x1={pad} x2={width - 12} y1={y} y2={y} className="stroke-slate-200" />
-              <text x="0" y={y + 4} className="fill-navy/60 text-[10px]">{tick}</text>
-            </g>
-          );
-        })}
-        {coords.length > 1 && <polyline fill="none" className="stroke-brand" strokeWidth="2.5" points={line} />}
-        {coords.map((point) => (
-          <g key={point.at}>
-            <circle cx={point.x} cy={point.y} r="4" className="fill-brand" />
-            <text x={point.x} y={height - 8} textAnchor="middle" className="fill-navy text-[10px]">{point.label}</text>
-          </g>
-        ))}
-      </svg>
-      <table className="mt-2 w-full text-left text-sm">
-        <caption className="sr-only">Overall rating by evaluation date</caption>
-        <thead className="text-xs uppercase tracking-wide text-slate-400">
-          <tr><th className="py-1 font-medium">Evaluation</th><th className="py-1 text-right font-medium">Overall</th></tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.at} className="border-t border-slate-100">
-              <td className="py-1.5">{point.label}</td>
-              <td className="py-1.5 text-right font-semibold tabular-nums">{point.value}</td>
             </tr>
           ))}
         </tbody>
